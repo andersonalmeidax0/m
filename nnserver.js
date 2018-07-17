@@ -19,10 +19,11 @@ v.1.5
 		
 -v 1.6 refactor e extract do codigo de "js-pandas" data manipulation		
 -v 1.7 mudança de posicao de funcoes DM
--v 1.8 codigo mostrando labels, apresentaçao, testado com outros datasets 
+-v 1.8 codigo mostrando labels 
+- v1.9 refactor extract DM to class
 */
 
-var APPV="1.8"; 
+var APPV="1.9"; 
 
 //Ciclo: save, git add *, git diff --staged, git commit -m
 
@@ -116,9 +117,10 @@ function toAsciiNoComma(src) {
 console.info('START2...');
 var qs = require('querystring');
 
+var dm = require('./dm');
+
 var formParam1 = '<html><body>'
   + '<h1>Machine Learning Test Server: '+APPV+'</h1>'
-  + '<h3>Multivariable Linear Regression (sem LogReg, sem Regularization)</h1>'
   + '<form method="post" action="train" enctype="application/x-www-form-urlencoded"><fieldset>'
   + '<div><label for="colsep">File Column separator:</label>'
   +'<input type="text" id="colsep" name="colsep" value=","/></div>'
@@ -169,12 +171,32 @@ var J;   //erro ou "cost"
 var Jarr = []; //array de J para debug
 var TTarr = []; //array de Theta
 
-var DMcount=[];
-var DMgavg=[];
-var DMgstdev=[];
-var DMgmad=[];  //mean absolute deviation
-var DMgmax=[];
-var DMgmin=[];
+var gDM = {
+	count:[],
+	gavg:[],
+	gstdev:[],
+	gmad:[],  //mean absolute deviatio
+	gmax:[],
+	gmin:[],
+} 
+
+/*
+var pDM.count=[];
+var pDM.gavg=[];
+var pDM.gstdev=[];
+var pDM.gmad=[];  //mean absolute deviation
+var pDM.gmax=[];
+var pDM.gmin=[];
+*/
+
+/*
+var pDM.count=[];
+var pDM.gavg=[];
+var pDM.gstdev=[];
+var pDM.gmad=[];  //mean absolute deviation
+var pDM.gmax=[];
+var gDM.gmin=[];
+*/
 
 var MXLabels=[]; //array de labels de X
 
@@ -315,17 +337,17 @@ function UIPostTrainData(requestBody,response)
           formDataInt.p2=formData.p2;
           formDataInt.p3=formData.p3;
 		  
-          MXLabels=DMreadfileLine1(formDataInt.filename,formDataInt.colsep);
+          MXLabels=dm.readfileLine1(formDataInt.filename,formDataInt.colsep,fs);
 		  formData.numparam=formDataInt.numparam=MXLabels.length;
 		  
-          matrixfile=DMreadfile(formDataInt.filename,formDataInt.colsep);
+          matrixfile=dm.readfile(formDataInt.filename,formDataInt.colsep,fs);
 		  /* mget PARAMS */ 
 		  /*  pmatrixfile = matriz */
 		  /* PNUMPARAMS - nao utilizado!!! */
 		  /*  startrow, endrow+1 */
 		  /*  startcol , passar endcol+1  */
 
-          MY=DMxmget(matrixfile,  //file
+          MY=dm.xmget(matrixfile,  //file
 		  0,  //startrow
 		  parseInt(matrixfile.length), //endrow +1 
 		  parseInt(formDataInt.numparam)-1,  //startcol (pega a ultima coluna)
@@ -355,7 +377,7 @@ function UIPostTrainData(requestBody,response)
           }
 
           //MX0 é a matriz sem a coluna Y
-          var MX0=DMxmget(matrixfile,
+          var MX0=dm.xmget(matrixfile,
 		  0, //startrow
 		  parseInt(matrixfile.length),  //endrow+1
 		  0,  //startcol
@@ -363,31 +385,31 @@ function UIPostTrainData(requestBody,response)
 		  );
 		  
 		  //MX é a matriz com a coluna de 1´s  e sem coluna Y
-          MX=DMaddcol(MX0,parseInt(formDataInt.numparam)-1,false);
+          MX=dm.addcol(MX0,parseInt(formDataInt.numparam)-1,false);
 
 		  //ATENCAO: chama 2 vezes esta rotina.
 		  //PRIMEIRA VEZ CALCULA COM Y apenas para exibir na tela
 		  //NA SEGUNDA VEZ calcula com MX, ou seja, com coluna 1 e sem Y
 		  //calcula estatisticas 
-          DMcount=[];
-          DMgavg=[];
-          DMgstdev=[];
-		  DMgmin=[];
-		  DMgmax=[];
-		  DMgmad=[];
+          gDM.count=[];
+          gDM.gavg=[];
+          gDM.gstdev=[];
+		  gDM.gmin=[];
+		  gDM.gmax=[];
+		  gDM.gmad=[];
           for(n=0;n<parseInt(formDataInt.numparam);n++)
           {
              //adiciona uma linha com uma coluna [1]
-             DMcount.push([0]);
-             DMgavg.push([0]);
-             DMgstdev.push([0]);
-             DMgmin.push([0]);
-             DMgmax.push([0]);
-             DMgmad.push([0]);
+             gDM.count.push([0]);
+             gDM.gavg.push([0]);
+             gDM.gstdev.push([0]);
+             gDM.gmin.push([0]);
+             gDM.gmax.push([0]);
+             gDM.gmad.push([0]);
           }
 		  
 		  //get statitstics
-         DMnormalizeMatrix(matrixfile.length,parseInt(formDataInt.numparam),matrixfile);
+         dm.normalizeMatrix(matrixfile.length,parseInt(formDataInt.numparam),matrixfile,gDM);
 		  
           response.writeHead(200, {'Content-Type': 'text/html'});
           response.write('<!doctype html><html><head><title>response</title>');
@@ -399,7 +421,7 @@ function UIPostTrainData(requestBody,response)
 		  
 		  //Escala X[0]: 300/max. 300 é o tamanho em pixels do canvas
 		  var canvsize=300;
-		  xscale1=canvsize/(DMgmax[0]);
+		  xscale1=canvsize/(gDM.gmax[0]);
 		  yscale1=canvsize/(maxy);
 		  //subtrai valor menor  (soma se for negativo) para grafico comecar o primeiro valor em 0
 		  //xstart=gmin[0]*-1;
@@ -409,8 +431,8 @@ function UIPostTrainData(requestBody,response)
 		  
           response.write('<script>\n');
           response.write('var numpoints='+parseInt(MX0.length)+';\n');
-          response.write('\ndadosx=['+DMmultiplyVector(DMsumToVector(MX0,xstart),xscale1)+'];\n');
-          response.write('\ndadosy=['+DMmultiplyVector(DMsumToVector(MY,ystart),yscale1)+'];\n');
+          response.write('\ndadosx=['+dm.multiplyVector(dm.sumToVector(MX0,xstart),xscale1)+'];\n');
+          response.write('\ndadosy=['+dm.multiplyVector(dm.sumToVector(MY,ystart),yscale1)+'];\n');
           //response.write('var dadosx=[10,20,30,40,50,60,70,80,90,100,110];\n');
           //response.write('var dadosy=[10,20,30,40,50,60,70,80,90,100,110];\n');
           response.write('var gcolor="#FF0000";\n');
@@ -453,7 +475,7 @@ function UIPostTrainData(requestBody,response)
 		  matrixfileWithLabels.push(MXLabels);
 		  for(var i=0;i<matrixfile.length;i++) matrixfileWithLabels.push(matrixfile[i]);
           //response.write('<hr>'+matrixfileWithLabels+'============'+matrixfileWithLabels.length);
-          s = DMhtmltable(5,formDataInt.numparam,matrixfileWithLabels);
+          s = dm.htmltable(5,formDataInt.numparam,matrixfileWithLabels);
           response.write('<hr>'+s);
           /*
           //GRAPH:codigo para incluir canvas
@@ -469,28 +491,20 @@ function UIPostTrainData(requestBody,response)
           */
           response.write('<hr>Statistcs<hr>');
 
-		  DMstats=[];
 		  //Loop de colunas
 		  
-		  //STOP: ver como criar esta tabela
-		  //depois ver como fazer um tratamento de "newlines e virgulas" dentro de strings.
-		  //pode ser trocar ',´ e ';', e newline por escaped.
-		  
 		  //Prepara tabela de estatisticas como no Pandas.
-		  //Cada colunas é uma coluna da tabela e cada linha uma informação estratística
+		  //Cada coluna é uma coluna da tabela e cada linha uma informação estratística
 		  //Adiciona linhas
+		  DMstats=[];
 		  
   		  emptyrow=[];emptyrow.push('label'); DMstats.push(emptyrow); 
-  		  emptyrow=[];emptyrow.push('count');  DMstats.push(emptyrow);
+  		  emptyrow=[];emptyrow.push('count'); DMstats.push(emptyrow);
   		  emptyrow=[];emptyrow.push('avg');  DMstats.push(emptyrow);
   		  emptyrow=[];emptyrow.push('std');  DMstats.push(emptyrow);
   		  emptyrow=[];emptyrow.push('mad');  DMstats.push(emptyrow);
   		  emptyrow=[];emptyrow.push('min');  DMstats.push(emptyrow);
   		  emptyrow=[];emptyrow.push('max');  DMstats.push(emptyrow);
-		  
-		  //console.log('================DMstats==============');
-		  //console.log(DMstats);
-		  //console.log('================DMstats==============');
 		  
 		  //loop de colunas
 		  for(var i=0;i<MXLabels.length;i++)
@@ -498,20 +512,16 @@ function UIPostTrainData(requestBody,response)
 		     //adiciona uma coluna em cada linha
 			 linha=0;
 			 emptyrow=DMstats[linha++]; emptyrow.push(MXLabels[i]);
-			 emptyrow=DMstats[linha++]; emptyrow.push(DMcount[i]);
-			 emptyrow=DMstats[linha++]; emptyrow.push(DMgavg[i]);
-			 emptyrow=DMstats[linha++]; emptyrow.push(DMgstdev[i]);
-			 emptyrow=DMstats[linha++]; emptyrow.push(DMgmad[i]);
-			 emptyrow=DMstats[linha++]; emptyrow.push(DMgmin[i]);
-			 emptyrow=DMstats[linha++]; emptyrow.push(DMgmax[i]);
+			 emptyrow=DMstats[linha++]; emptyrow.push(gDM.count[i]);
+			 emptyrow=DMstats[linha++]; emptyrow.push(gDM.gavg[i]);
+			 emptyrow=DMstats[linha++]; emptyrow.push(gDM.gstdev[i]);
+			 emptyrow=DMstats[linha++]; emptyrow.push(gDM.gmad[i]);
+			 emptyrow=DMstats[linha++]; emptyrow.push(gDM.gmin[i]);
+			 emptyrow=DMstats[linha++]; emptyrow.push(gDM.gmax[i]);
 		  }
 
-		  //console.log('================DMstats==============');
-		  //console.log(DMstats);
-		  //console.log('================DMstats==============');
-
 		response.write('<br/>Descriptive Statistics:');
-		s = DMhtmltable(DMstats.length,MXLabels.length+1,DMstats);
+		s = dm.htmltable(DMstats.length,MXLabels.length+1,DMstats);
 		response.write(s);
 		/*  
  		response.write('<br/>MIN array:'+DMgmin);
@@ -540,20 +550,21 @@ function UIPostTrainData(requestBody,response)
 
 		  //NA SEGUNDA VEZ calcula com MX, ou seja, com coluna 1 e sem Y
 		  //calcula estatisticas 
-          DMgavg=[];
-          DMgstdev=[];
-		  DMgmin=[];
-		  DMgmax=[];
-		  DMgmad=[];
+		  gDM.count=[];
+          gDM.gavg=[];
+          gDM.gstdev=[];
+		  gDM.gmin=[];
+		  gDM.gmax=[];
+		  gDM.gmad=[];
           for(n=0;n<parseInt(formDataInt.numparam);n++)
           {
              //adiciona uma linha com uma coluna [1]
-             DMcount.push([0]);
-             DMgavg.push([0]);
-             DMgstdev.push([0]);
-             DMgmin.push([0]);
-             DMgmax.push([0]);
-             DMgmad.push([0]);
+             gDM.count.push([0]);
+             gDM.gavg.push([0]);
+             gDM.gstdev.push([0]);
+             gDM.gmin.push([0]);
+             gDM.gmax.push([0]);
+             gDM.gmad.push([0]);
           }
   
   
@@ -561,7 +572,7 @@ function UIPostTrainData(requestBody,response)
           {
              //response.write('<hr>Normalization Coefs:<hr>'+MXLabels+'<br>');
 			 //chama pela segunda vez agora guardando em MX.
-             MX=DMnormalizeMatrix(MX.length,parseInt(formDataInt.numparam),MX);
+             MX=dm.normalizeMatrix(MX.length,parseInt(formDataInt.numparam),MX,gDM);
              //response.write('<br/>X MATRIX lines NORM:'+MX.length);
              //s = DMhtmltable(MX.length,parseInt(formDataInt.numparam),MX);
             //response.write('<hr>'+s);
@@ -570,12 +581,12 @@ function UIPostTrainData(requestBody,response)
 		  if(formDataInt.showDataTable==1)
 		  {
 			  response.write('<br/>X MATRIX lines:'+MX.length);
-			  s = DMhtmltable(MX.length,parseInt(formDataInt.numparam),MX);
+			  s = dm.htmltable(MX.length,parseInt(formDataInt.numparam),MX);
 			  response.write('<hr>'+s);
 
 				  
 			  response.write('<br/>Y MATRIX lines:'+MY.length);
-			  s = DMhtmltable(MY.length,1,MY);
+			  s = dm.htmltable(MY.length,1,MY);
 			  response.write('<hr>'+s);
 		  }
 		  
@@ -600,7 +611,7 @@ function UIPostTrainData(requestBody,response)
 function UITrain(response)
 {
           response.writeHead(200, {'Content-Type': 'text/html'});
-          response.write('<!doctype html><html><head><title>Iteration:'+formDataInt.iternum+'</title>');
+          response.write('<!doctype html><html><head><title>response v2</title>');
           //verifica se ja chegou na ultima iteracao
           if(formDataInt.iternum<formDataInt.iterations)
           {
@@ -630,7 +641,6 @@ function UITrain(response)
           /////////////////////////////////////////////////
           
           J = computeCost(parseInt(formDataInt.mlmethod),MX,MY,TT,response);
-          response.write('<br />Iteration: '++formDataInt.iternum);
           response.write('<br />Erro entre real e previsto (J): '+J);
           Jarr.push(J);
 
@@ -648,7 +658,7 @@ function UITrain(response)
 		  TT2 = [];
 		  TT2.push(CoefLabels);
 		  TT2.push(TT);
-          s = DMhtmltable(TT2.length,CoefLabels.length,TT2);
+          s = dm.htmltable(TT2.length,CoefLabels.length,TT2);
           response.write('<hr>'+s);
           
 
@@ -680,8 +690,8 @@ function UITrain(response)
 		  xscale1=canvsize/parseInt(formDataInt.iterations);
 		  //o maximo Y é o primeiro Erro x 10  (se o erro subir...)
 		  yscale1=canvsize/(Jarr[0]*10);
-          response.write('\ndadosx=['+DMmultiplyVector(dx,xscale1)+'];\n');
-          response.write('\ndadosy=['+DMmultiplyVector(Jarr,yscale1)+'];\n');
+          response.write('\ndadosx=['+dm.multiplyVector(dx,xscale1)+'];\n');
+          response.write('\ndadosy=['+dm.multiplyVector(Jarr,yscale1)+'];\n');
           response.write('var gcolorj="#0000FF";\n');
           
           
@@ -690,7 +700,7 @@ function UITrain(response)
 		  var maxtetha=[];
           for(var i=0;i<TT.length;i++)
           {
-				response.write('var dadosx'+i+'=['+DMmultiplyVector(dx,xscale1)+'];\n');
+				response.write('var dadosx'+i+'=['+dm.multiplyVector(dx,xscale1)+'];\n');
 
 				//escala o Y em theta.... vai mudando a escala do grafico de 100 em 100
                 //busca o maior theta para escalar o grafico
@@ -702,8 +712,8 @@ function UITrain(response)
 				}		 
 				yscale1=canvsize/(maxtetha[i]);
 		      //Pega a lista historica de thetas
-			  var T1 = DMxmget(TTarr,0,       TTarr.length,i,i+1)
-				response.write('var dadosy'+i+'=['+DMmultiplyVector(T1,yscale1)+'];\n');
+			  var T1 = dm.xmget(TTarr,0,       TTarr.length,i,i+1)
+				response.write('var dadosy'+i+'=['+dm.multiplyVector(T1,yscale1)+'];\n');
 				response.write('var gcolor'+i+'="#00FF00";\n');
           }
 
@@ -759,7 +769,7 @@ function UITrain(response)
 		  matrixfileWithLabels.push(MXLabels);
 		  for(var i=0;i<matrixfile.length;i++) matrixfileWithLabels.push(matrixfile[i]);
 //          response.write('<hr>'+matrixfileWithLabels+'============'+matrixfileWithLabels.length);
-          s = DMhtmltable(5,formDataInt.numparam,matrixfileWithLabels);
+          s = dm.htmltable(5,formDataInt.numparam,matrixfileWithLabels);
           response.write('<hr>'+s);
 
           };
@@ -843,7 +853,7 @@ function UIPredict(requestBody,response)
 		  XX2 = [];
 		  XX2.push(CoefLabels);
 		  XX2.push(Xcols);
-          s = DMhtmltable(XX2.length,CoefLabels.length,XX2);
+          s = dm.htmltable(XX2.length,CoefLabels.length,XX2);
           response.write('<hr>'+s);
 
           //s = DMhtmltable(1,XX[0].length,XX);
@@ -855,15 +865,15 @@ function UIPredict(requestBody,response)
           {
 			  response.write('<br/>Normalizacao: passo 1:subtrai da media (ficam em torno de x) ');
 			  response.write('<br/>Normalizacao: passo 2:divide por stdev (escala valores) ');
-			  response.write('<br/>AVG:'+DMgavg.length);
-			  s = DMhtmltable(DMgavg.length,1,DMgavg);
-			  response.write('<br/>STDEV:'+DMgstdev.length);
-			  s = DMhtmltable(DMgstdev.length,1,DMgstdev);
+			  response.write('<br/>AVG:'+gDM.gavg.length);
+			  s = dm.htmltable(gDM.gavg.length,1,gDM.gavg);
+			  response.write('<br/>STDEV:'+gDM.gstdev.length);
+			  s = dm.htmltable(gDM.gstdev.length,1,gDM.gstdev);
             for(var i=1;i<TT.length;i++)
             {
                csep=XX[0][i];
-               csep=csep-DMgavg[i];
-               csep=csep/DMgstdev[i];
+               csep=csep-gDM.gavg[i];
+               csep=csep/gDM.gstdev[i];
                XX[0][i]=csep;
             };
           }           
@@ -871,7 +881,7 @@ function UIPredict(requestBody,response)
 		  XX2 = [];
 		  XX2.push(CoefLabels);
 		  XX2.push(Xcols);
-          s = DMhtmltable(XX2.length,CoefLabels.length,XX2);
+          s = dm.htmltable(XX2.length,CoefLabels.length,XX2);
           response.write('<hr>'+s);
 
 		  response.write('<br/>Coeficientes (Tethas) :');
@@ -885,7 +895,7 @@ function UIPredict(requestBody,response)
 		  TT2 = [];
 		  TT2.push(CoefLabels);
 		  TT2.push(TT);
-          s = DMhtmltable(TT2.length,CoefLabels.length,TT2);
+          s = dm.htmltable(TT2.length,CoefLabels.length,TT2);
           response.write('<hr>'+s);
 
 		  
@@ -893,7 +903,7 @@ function UIPredict(requestBody,response)
         //TT em linhas
         //XX em colunas (ja transposto)
         //ho=hipotese de theta
-        var ho=DMmultiplyMatrices(XX,TT);
+        var ho=dm.multiplyMatrices(XX,TT);
     
         //paramTable=MXLabels;
 		//paramTable.push(XX);
@@ -906,264 +916,6 @@ function UIPredict(requestBody,response)
         response.end('</body></html>');
 
 }
-/* *************************************************/
-/* *************************************************/
-/************************ FUNCTIONS   ********************/
-/************************ FUNCTIONS   ********************/
-/************************ FUNCTIONS   ********************/
-/************************ FUNCTIONS   ********************/
-/* *************************************************/
-/* *************************************************/
-/* Le arquivo e coloca num array de linhas */
-/* *************************************************/
-DMreadfile = function (file1,csep)
-{
-  var arrlines = [];
-  var fileContents = fs.readFileSync(file1);
-  var lines = fileContents.toString().split('\n');
-   //começa em 1 ignora primeira linha de labels
-  for (var i = 1; i < lines.length; i++) {
-    arrlines.push(lines[i].toString().split(csep));
-  }
-
-  return arrlines;
-}
-
-/*******************************************/
-/*  obtem numero de colunas do arquivo... */
-/*******************************************/
-DMreadfileLine1=function(file1,csep)
-{
-  var s = [];
-  var fileContents = fs.readFileSync(file1);
-  var lines = fileContents.toString().split('\n');
-
-
-  return lines[0].toString().split(csep);
-}
-
-
-/*******************************************/
-/*  htmltable... */
-/* plines: linhas */
-/* pnumparams: colunas */
-/*******************************************/
-DMhtmltable =function(plines,pnumparams,mtx)
-{
-          var s="";
-  //console.log('HTMLTABLE...plines:'+plines+' pnumparams:'+pnumparams);
-          
-          s=s+('<table border=1>');
-          for(ii=0;ii<plines;ii++)
-          {
-              s=s+('<tr>');
-              for(cc=0;cc<pnumparams;cc++)
-              {
-                s=s+('<td>');
-                s=s+(mtx[ii][cc]);
-                s=s+('</td>');
-              }
-              s=s+('</tr>');
-          }
-          s=s+('</table>');
-          return s;
-};
-
-
-/*******************************************/
-/*  seleciona partes de uma matriz */
-/*  pmatrixfile = matriz */
-/*  pnumparams ==> NAO UTILIZADO!!! */ 
-/*  startrow, endrow+1 */
-/*  startcol , passar endcol+1 
-*/
-/*******************************************/
- DMmget=function(pmatrixfile,pnumparams,startrow,endrow,startcol,endcol)
-{
-  DMxmget(pmatrixfile,startrow,endrow,startcol,endcol)
-}
-
- DMxmget=function(pmatrixfile,startrow,endrow,startcol,endcol)
-{
-  var arrout = [];
-  //console.log('MGET...startrown'+startrow+' endrow:'+endrow+' startcol:'+startcol+' endcol:'+endcol);
-  for (var i = startrow; i < endrow; i++) 
-  {
-      //console.log('MGET line..');
-      var arrcol=[];
-      var s='';
-      for (var j = startcol; j < endcol; j++) 
-      {
-         //console.log('MGET col..');
-         arrcol.push(pmatrixfile[i][j]);
-          if(j>0) s=s+(',');
-          s=s+(pmatrixfile[i][j]);
-      }
-      //console.log(arrcol);
-      //console.log(s);
-      arrout.push(arrcol);
-  }
-  //console.log(arrout);
-  return arrout;
-}
-/* ******************************************
- adiciona coluna no inicio de  uma matriz  com valor '1'
- na verdade, cada linha contem uma lista de células, cada uma pertence a uma coluna.
-pmatrifules = array
-pnumparams =  numero de colunas do array
-addAtEnd = flag indicando que eh para adicionar a coluna no final
-RETORNA: um novo array com mais uma coluna.
-****************************************** */
- DMaddcol=function(pmatrixfile,pnumparams, addAtEnd)
-{
-  var arrout = [];
-  //console.log('xxxxxxxxxxxx\n MADD...');
-  //startrown'+startrow+' endrow:'+endrow+' startcol:'+startcol+' endcol:'+endcol);
-  for (var i = 0; i < pmatrixfile.length; i++) 
-  {
-      //console.log('MADD line..');
-      var arrcol=[];
-      var s='1,';
-	  if(addAtEnd==false)
-		arrcol.push(1);
-      for (var j = 0; j < pnumparams; j++) 
-      {
-         //console.log('MADD col..');
-         arrcol.push(pmatrixfile[i][j]);
-          if(j>0) s=s+(',');
-          s=s+pmatrixfile[i][j];
-      }
-	  if(addAtEnd==true)
-		arrcol.push(1);
-      //console.log(arrcol);
-      //console.log(s);
-      arrout.push(arrcol);
-  }
-  //console.log(arrout);
-  return arrout;
-}
-/* ******************************************
- multiplica duas matrizes
-****************************************** */
- DMmultiplyMatrices=function(m1, m2) {
-    var result = [];
-    for (var i = 0; i < m1.length; i++) {
-        result[i] = [];
-        for (var j = 0; j < m2[0].length; j++) {
-            var sum = 0;
-            for (var k = 0; k < m1[0].length; k++) {
-                sum += m1[i][k] * m2[k][j];
-            }
-            result[i][j] = sum;
-        }
-    }
-    return result;
-}
-/* ******************************************
- multiplica vetor por escalar
-****************************************** */
- DMmultiplyVector=function(m1,sc) {
-    var result = [];
-    for (var i = 0; i < m1.length; i++) {
-        result[i] = m1[i]*sc;
-    }
-    return result;
-}
-/* ******************************************
- soma escalar em vetor 
-****************************************** */
- DMsumToVector=function(m1,sc) {
-    var result = [];
-    for (var i = 0; i < m1.length; i++) {
-        result[i] = m1[i]+sc;
-    }
-    return result;
-}
-
-/*******************************************/
-//  Normaliza matriz
-//  para cada coluna:
-//         loop1: calcula média
-//         loop2: calcula stddev (precisa da media)
-//         loop3: subtrai da média e multiplica por stdev
-/* pnumparams: colunas */
-/*******************************************/
- DMnormalizeMatrix=function(plines,pnumparams,pmtx)
-{
-          var s="";
-		  var rmtx=[];
-          //console.log('Normalize...plines:'+plines+' pnumparams:'+pnumparams);
-          //loop de colunas
-          var v=0;
-          for(cc=0;cc<pnumparams;cc++)
-          {
-            //console.log('COL :'+cc+' ==========');
-            v=0;
-            //loop1 de linhas (calcula  media)
-            var max1=-999999999;   // 999.999.999 = 999Milhoes
-            var min1=+999999999;
-            for(ii=0;ii<plines;ii++)
-            {
-                var c=parseFloat(pmtx[ii][cc]);
-				//Faz contagem apenas de colunas numericas
-				if(!isNaN(c))
-					DMcount[cc][0]=DMcount[cc][0]+1;
-                v+=c;
-                if(c>max1) max1=c;
-                if(c<min1) min1=c;
-            }
-            var v2=v/plines;
-				
-            DMgavg[cc][0]=v2;
-            DMgmin[cc][0]=min1;
-            DMgmax[cc][0]=max1;
-            DMgstdev[cc][0]=0;
-            //console.log('L0: SUM...:'+v+' max:'+max1+' min:'+min1);
-            //console.log('L1: AVG...:'+DMgavg[cc][0]+' elemts:'+plines);
-
-            v=0;
-			vmad=0;
-            //loop1 de linhas (calcula stdev) (calcula desvioPadrao da media)
-            for(ii=0;ii<plines;ii++)
-            {
-                var c=parseFloat(pmtx[ii][cc]);
-                v+= (c-DMgavg[cc][0])*(c-DMgavg[cc][0]);
-				vmad+= Math.abs(c-DMgavg[cc][0]);
-            }
-
-            v=v/plines;
-            DMgstdev[cc][0]= Math.sqrt(v);
-
-            vmad=vmad/plines;
-            DMgmad[cc][0]= vmad;
-
-            console.log('L2:  stdev:'+DMgstdev[cc][0]+' mean of n-mean:'+v);
-            console.log('L2:  vmad:'+DMgmad[cc][0]+' mean of n-mean:'+v);
-
-           }; 
- 
-           //loop3: loop de linhas e colulas p/criar arraynew: normaliza  subtrai da média e multiplica por stdev
-            for(ii=0;ii<plines;ii++)
-            {
-			  var lin1=[];
-			  for(cc=0;cc<pnumparams;cc++)
-			  {
-                var c=parseFloat(pmtx[ii][cc]);
-                //só normaliza se stdev != 0
-                if(DMgstdev[cc][0]!=0)
-                  c=(c-DMgavg[cc][0])/DMgstdev[cc][0];
-                //else
-                 // c=0;
-				 lin1.push(c);
-                 //rmtx[ii][cc]=c;
-			   }
-				rmtx.push(lin1);
-            }
-
-			return rmtx;
-};
-
-
 
 /* *************************************************/
 /* *************************************************/
@@ -1197,7 +949,7 @@ function computeCost(tp,pMX,pMY,pTT,response)
 
     var m=pMY.length;  //numero de training examples
     //calcula h(x) [prediction]
-    var ho=DMmultiplyMatrices(pMX,pTT);
+    var ho=dm.multiplyMatrices(pMX,pTT);
 
     //Se for regressao logistica, ho tem ser o sigmoid function
     if(tp==1) {
@@ -1270,7 +1022,7 @@ function gradientDescent(tp,pMX,pMY,pTT,alpha, response)
    //console.log('******************* N:'+nn);
 
    //calcula h(x) [prediction]
-   var ho=DMmultiplyMatrices(pMX,pTT);
+   var ho=dm.multiplyMatrices(pMX,pTT);
 
    //tp=0 linearRegression, tp=1 logistiRegression
    //Para logistics, tem que calcular o sigmoid
@@ -1347,16 +1099,6 @@ function NNgetX(pmatrixfile,pnumparams)
   return arrlines;
 }
 
-/*
-function NNgetY(pmatrixfile)
-{
-}
-
-function mmult(pmatrixfile)
-{
-
-}
-*/
 
 function sigmoid(t) {
     return 1/(1+Math.pow(Math.E, -t));
