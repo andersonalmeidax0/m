@@ -11,8 +11,42 @@
 var DM = function (){};
 DM.prototype.getVersion=function () 
 { 
-	return '5.0'; 
+	return '5.2'; 
 };
+
+function xassert(m,a,b)
+{
+  console.log('TEST:'+m+'  assert:('+a+') = ('+b+')');
+  if(a==b)
+  {
+    console.log('----------------- UNIT OK -------------------');
+    return true;
+  }  
+  else  
+  {
+    console.log('XXXXXXXXXX TEST:'+m+' assert:[ '+a+' ] = [ '+b+' ] XXXXXXXXXXXXX');
+    console.log('XXXXXXXXXXXX UNIT TEST FAILED XXXXXXXXXXXXXXXXXXXX');
+    process.  exit(0);
+  }  
+}    
+
+DM.prototype.unittest=function () 
+{
+   console.log('Unit Testing:');   
+   xassert('scatterchart([[1,2,3]])',dm.scatterchart([[1,2,3]]),'1');  
+   
+}
+
+DM.prototype.help=function () 
+{ 
+     console.log(DM.prototype[0]);
+     console.log(DM.prototype[1]);
+     console.log(DM.prototype);
+	 for(i=0;i<DM.prototype.length;i++)
+     console.log(DM.prototype[i]);
+     
+};
+
 
 DM.prototype.readfile= function (file1,csep,fs)
 {
@@ -960,15 +994,102 @@ DM.prototype.describe=function(pmtx,options)
  */
 DM.prototype.chart=function(pdataset,poptions)
 {
-  return SSCS_SimpleChart(pdataset,poptions)
+  return SSCS_SimpleChart(pdataset,null,poptions)
+}
+DM.prototype.barchart=function(pdataset,poptions)
+{
+  return SSCS_SimpleChart(pdataset,null,poptions)
+}
+DM.prototype.scatterchart=function(pdataset,pdataset2,poptions)
+{
+        if(poptions==null)
+        {
+            poptions=
+            {
+            title:'Chart',
+            type:'scatter',
+            w:300,
+            h_factor:0.5,
+            x_labels:null,
+            y_labels:null,
+            axis_x:{text:'axis x',tick_step:10},
+            axis_y:{text:'axis y',tick_step:10},
+            };
+        };
+
+  var lab1='xxx';
+  var lab2='zzz';  
+  var miny=0;
+  var maxx=0;
+  var maxy=0;
+  var canvsize=300;
+  return  '<script> \n'+
+'var numpoints=11;\n'+
+'var dadosx=[10,20,30,40,50,60,70,80,90,100,110];\n'+
+'var dadosy=[10,20,30,40,50,60,70,80,90,100,110];\n'+
+'var gcolor="#FF0000";\n'+
+'var dadosx2=[14,26,34,47,52,60,73,80,90,100,110];\n'+
+'var dadosy2=[20,30,40,50,60,72,80,90,100,110,100];\n'+
+'var gcolor2="#00FF00";\n'+
+'\n'+
+'//function init1()\n'+
+'{\n'+
+'  drawCanvas("myCanvas",numpoints,dadosx,dadosy,gcolor)\n'+
+'  drawCanvas("myCanvas",numpoints,dadosx2,dadosy2,gcolor2)\n'+
+'}\n'+
+'function drawCanvas(cname,pnumpoints,pdadosx,pdadosy,pgcolor,altura) {\n'+
+'\n'+
+'var c = document.getElementById(cname);\n'+
+'var ctx = c.getContext("2d");\n'+
+'//ctx.clearRect(0, 0, c.width, c.height);\n'+
+'\n'+
+'\n'+
+'ctx.fillStyle=pgcolor;\n'+
+'for(ii=0;ii<numpoints;ii++)\n'+
+'{\n'+
+'  ctx.fillRect(pdadosx[ii],(altura/2)-pdadosy[ii],2,2);\n'+
+'}\n'+
+'ctx.stroke();\n'+
+'}\n'+
+'\n'+
+'</script>\n'+
+('<table>')+
+('<tr><td>'+lab1+':'+miny+' ate '+maxy+'</td>')+
+('<td><canvas id="myCanvas" width="'+canvsize+'" height="'+canvsize+'"')+
+('style="border:1px solid #d3d3d3;">')+
+('Your browser does not support the HTML5 canvas tag.</canvas>')+
+('</td></tr>')+
+('<tr><td></td><td>'+lab2+':'+miny+' ate '+maxy+'</td>')+
+('</tr>')+
+('</table>')+
+'';
+  //return SSCS_SimpleChart(pdataset,pdataset2,poptions)
 }
 
 /* ***********************************************80
 Retorna texto html com grafico
 pDataset: dataset de series
 poptions: opcoes (se não passar, assume defaults
+        var dataSet=[[101,102,108,105,110,115,118,120,122,101,102,108,105,110,115,118,120,122]];
+        //var dataSet=[[1,2,8,5,10,15,18,20,22]];
+        var options ={
+        title:'SimpleChart',
+        type:'bar',
+        w:100,
+        h_factor:0.6,
+        h_overridexx:500,
+//        d_options:'"border:2px solid #0000FF;"',  //'"height:100px;width:100px;"',
+//        t_options:'"height:500px;width:500px;border:2px solid #00FF00;"',
+     //   s_options:'"height:500px;border:2px solid #FF0000;"',
+        x_labels:[88,99,55,566],
+        y_labels:[1111,2222,3333,444444,5555],
+        axis_x:{text:'axis x',tick_step:5},
+        axis_y:{text:'axis y',tick_step:50},
+        };
+       var s= SSCS_SimpleChart(dataSet,options);
+ 
 ***************************************************  */
-function  SSCS_SimpleChart(pdataset,poptions)
+function  SSCS_SimpleChart(pdataset,pdataset2,poptions)
 {
         if(poptions==null)
         {
@@ -991,9 +1112,20 @@ function  SSCS_SimpleChart(pdataset,poptions)
         maxy=0;
         //pega primeira serie
         pdata=pdataset[0];
+        pdata2=pdataset2[0];
         if(poptions.type==='bar')
         {
            maxx=pdata.length;
+           maxy=0;
+           for(i=0;i<pdata.length;i++)
+              maxy=(maxy>pdata[i])?maxy:pdata[i];
+        }
+        if(poptions.type==='scatter')
+        {
+           maxx=0;
+           for(i=0;i<pdata2.length;i++)
+              maxx=(maxx>pdata2[i])?maxx:pdata2[i];
+
            maxy=0;
            for(i=0;i<pdata.length;i++)
               maxy=(maxy>pdata[i])?maxy:pdata[i];
@@ -1013,14 +1145,7 @@ function  SSCS_SimpleChart(pdataset,poptions)
         ypad=5;
         xlabelAdd=15;
         ylabelSub=5;
-        /*
-        console.log('w:'+w);
-        console.log('h:'+h);
-        console.log('mx:'+maxx);
-        console.log('my:'+maxy);
-        console.log('sx:'+stepx);
-        console.log('sy:'+stepy);
-        */
+
         //Calcula altura total
         totalh=ypad+h+ypad+xlabelAdd+xlabelAdd;
         totalw=xpad+w+xpad;
@@ -1039,8 +1164,8 @@ function  SSCS_SimpleChart(pdataset,poptions)
         if(poptions.s_options)
              s_options= poptions.s_options;     
 
-             if(poptions.h_override)
-             totalh= parseInt(poptions.h_override);     
+       if(poptions.h_override)
+       totalh= parseInt(poptions.h_override);     
         
         style=SSC_getStyle(totalh,totalw);
         headertitle= '\
@@ -1177,5 +1302,12 @@ function SSC_getStyle(h,w)
 
 
 module.exports = new DM();
+dm = new DM();
+/*
+var DM = require('./dm');
+console.log(DM.getVersion());
+console.log(DM.help());
+DM.unittest();
+*/
 
 
