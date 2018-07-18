@@ -5,13 +5,25 @@
 /************************ DATA MANIPULATION FUNCTIONS   ********************/
 /************************ DATA MANIPULATION FUNCTIONS   ********************/
 /* *************************************************/
+//v5.4: bugs + unittest + scatter (not working)
+//v5.5: describe com sum, refactor normalize
+
 /* *************************************************/
 /* Le arquivo e coloca num array de linhas */
 /* *************************************************/
 var DM = function (){};
 DM.prototype.getVersion=function () 
 { 
-	return '5.2'; 
+	return '5.5'; 
+};
+DM.prototype.help=function () 
+{ 
+     //console.log(DM.prototype[0]);
+     //console.log(DM.prototype[1]);
+     console.log(DM.prototype);
+  	 //for(i=0;i<DM.prototype.length;i++)
+     //console.log(DM.prototype[i]);
+     
 };
 
 function xassert(m,a,b)
@@ -26,7 +38,7 @@ function xassert(m,a,b)
   {
     console.log('XXXXXXXXXX TEST:'+m+' assert:[ '+a+' ] = [ '+b+' ] XXXXXXXXXXXXX');
     console.log('XXXXXXXXXXXX UNIT TEST FAILED XXXXXXXXXXXXXXXXXXXX');
-    process.  exit(0);
+   // process.  exit(0);
   }  
 }    
 
@@ -34,18 +46,31 @@ DM.prototype.unittest=function ()
 {
    console.log('Unit Testing:');   
    xassert('scatterchart([[1,2,3]])',dm.scatterchart([[1,2,3]]),'1');  
+   var  testdata =[
+   [1,2,3],
+   [4,5,6],
+   ];
    
+   xassert('desc(testdata)',dm.describe(testdata),'1');  
+   r=dm.normalizeMatrixNew(testdata);
+/*
+{ count: [ [ 2 ], [ 2 ],  [ 2 ] ],
+  gavg:  [[ 2.5 ],[ 3.5 ],[ 4.5 ] ],
+  gstdev:[[ 1.5 ],[ 1.5 ],[ 1.5 ] ],
+  gmad:  [ [ 1.5 ],[ 1.5 ],[ 1.5 ] ],
+  gmax:  [ [ 4 ], [ 5 ], [ 6 ] ],
+  gmin:  [ [ 1 ], [ 2 ], [ 3 ] ],
+  gsum:  [ [ 5 ], [ 7 ], [ 9 ] ] }
+*/  
+   xassert('normalizeMatrizNew(testdata)',r.m,'1');  
+/* Normalizados: minimos e maximos de cada coluna
+   [ [ -1, -1, -1 ], 
+      [ 1, 1, 1 ] ]
+*/      
+   xassert('normalizeMatrizNew(testdata)',JSON.stringify(r.dm),'1');  
+      
 }
 
-DM.prototype.help=function () 
-{ 
-     console.log(DM.prototype[0]);
-     console.log(DM.prototype[1]);
-     console.log(DM.prototype);
-	 for(i=0;i<DM.prototype.length;i++)
-     console.log(DM.prototype[i]);
-     
-};
 
 
 DM.prototype.readfile= function (file1,csep,fs)
@@ -811,10 +836,41 @@ DM.prototype.sumToVector=function(m1,sc) {
  * retorna a matriz (pmtx é array, array em javascritpt é passado por copia
  * */
 /*******************************************/
+DM.prototype.normalizeMatrixNew=function(pmtx)
+{
+    options={hasHeaders:false};
+    plines=pmtx.length;
+    cols=0;
+    if(plines>0)
+      cols=pmtx[0].length;
+    var gDM = {
+      count:[],
+      gavg:[],
+      gstdev:[],
+      gmad:[],  //mean absolute deviatio
+      gmax:[],
+      gmin:[],
+      gsum:[],
+    } 
+    for(n=0;n<cols;n++)
+    {
+       //adiciona uma linha com uma coluna [1] para cada parametro(fica como no describe..)
+       gDM.count.push([0]);
+       gDM.gavg.push([0]);
+       gDM.gstdev.push([0]);
+       gDM.gmad.push([0]);
+       gDM.gmin.push([0]);
+       gDM.gmax.push([0]);
+       gDM.gsum.push([0]);
+    }
+    rmtx = dm_normalizeMatrix(plines,cols,pmtx,gDM,options);
+    return {m:rmtx,dm:gDM};    
+}
+
 DM.prototype.normalizeMatrix=function(plines,pnumparams,pmtx, pDM)
 {
     options={hasHeaders:false};
-    dm_normalizeMatrix(plines,cols,pmtx,pDM,options,options);
+    return dm_normalizeMatrix(plines,cols,pmtx,pDM,options,options);
 }
 DM.prototype.normalizeMatrix2=function(pmtx, pDM,options)
 {
@@ -827,7 +883,7 @@ DM.prototype.normalizeMatrix2=function(pmtx, pDM,options)
     if(plines>0)
       cols=pmtx[0].length;
 
-    dm_normalizeMatrix(plines,cols,pmtx,pDM,options);
+    return dm_normalizeMatrix(plines,cols,pmtx,pDM,options);
  }
 
 dm_normalizeMatrix=function(plines,pnumparams,pmtx, pDM,options)
@@ -847,74 +903,69 @@ dm_normalizeMatrix=function(plines,pnumparams,pmtx, pDM,options)
    }
 
    var s="";
-		  var rmtx=[];
-          //console.log('Normalize...plines:'+plines+' pnumparams:'+pnumparams);
-          //loop de colunas
-          var v=0;
-          for(cc=0;cc<pnumparams;cc++)
-          {
-            //console.log('COL :'+cc+' ==========');
-            v=0;
-            //loop1 de linhas (calcula  media)
-            var max1=-999999999;   // 999.999.999 = 999Milhoes
-            var min1=+999999999;
-            for(ii=0;ii<plines;ii++)
-            {
-                var c=parseFloat(pmtx[ii][cc]);
-				//Faz contagem apenas de colunas numericas
-				if(!isNaN(c))
-					pDM.count[cc][0]=pDM.count[cc][0]+1;
-                v+=c;
-                if(c>max1) max1=c;
-                if(c<min1) min1=c;
-            }
-            var v2=v/plines;
-				
-            pDM.gavg[cc][0]=v2;
-            pDM.gmin[cc][0]=min1;
-            pDM.gmax[cc][0]=max1;
-            pDM.gstdev[cc][0]=0;
-            //console.log('L0: SUM...:'+v+' max:'+max1+' min:'+min1);
-            //console.log('L1: AVG...:'+DMgavg[cc][0]+' elemts:'+plines);
+   var rmtx=[];
+    //loop de colunas
+    var v=0;
+    for(cc=0;cc<pnumparams;cc++)
+    {
+      v=0;
+      //loop1 de linhas (calcula  media)
+      var max1=-999999999;   // 999.999.999 = 999Milhoes
+      var min1=+999999999;
+      for(ii=0;ii<plines;ii++)
+      {
+          var c=parseFloat(pmtx[ii][cc]);
+          //Faz contagem apenas de colunas numericas
+          if(!isNaN(c))
+            pDM.count[cc][0]=pDM.count[cc][0]+1;
 
-            v=0;
-			vmad=0;
-            //loop1 de linhas (calcula stdev) (calcula desvioPadrao da media)
-            for(ii=0;ii<plines;ii++)
-            {
-                var c=parseFloat(pmtx[ii][cc]);
-                v+= (c-pDM.gavg[cc][0])*(c-pDM.gavg[cc][0]);
-				vmad+= Math.abs(c-pDM.gavg[cc][0]);
-            }
+          v+=c;
+          if(c>max1) max1=c;
+          if(c<min1) min1=c;
+      }
+      var v2=v/plines;
+  
+      pDM.gsum[cc][0]=v;
+      pDM.gavg[cc][0]=v2;
+      pDM.gmin[cc][0]=min1;
+      pDM.gmax[cc][0]=max1;
+      pDM.gstdev[cc][0]=0;
 
-            v=v/plines;
-            pDM.gstdev[cc][0]= Math.sqrt(v);
+      v=0;
+      vmad=0;
+      //loop1 de linhas (calcula stdev) (calcula desvioPadrao da media)
+      for(ii=0;ii<plines;ii++)
+      {
+          var c=parseFloat(pmtx[ii][cc]);
+          v+= (c-pDM.gavg[cc][0])*(c-pDM.gavg[cc][0]);
+          vmad+= Math.abs(c-pDM.gavg[cc][0]);
+      }
 
-            vmad=vmad/plines;
-            pDM.gmad[cc][0]= vmad;
+      v=v/plines;
+      pDM.gstdev[cc][0]= Math.sqrt(v);
 
-            //console.log('L2:  stdev:'+pDM.gstdev[cc][0]+' mean of n-mean:'+v);
-            //console.log('L2:  vmad:'+pDM.gmad[cc][0]+' mean of n-mean:'+v);
+      vmad=vmad/plines;
+      pDM.gmad[cc][0]= vmad;
 
-           }; 
- 
-           //loop3: loop de linhas e colulas p/criar arraynew: normaliza  subtrai da média e multiplica por stdev
-            for(ii=0;ii<plines;ii++)
-            {
-			  var lin1=[];
-			  for(cc=0;cc<pnumparams;cc++)
-			  {
-                var c=parseFloat(pmtx[ii][cc]);
-                //só normaliza se stdev != 0
-                if(pDM.gstdev[cc][0]!=0)
-                  c=(c-pDM.gavg[cc][0])/pDM.gstdev[cc][0];
-                //else
-                 // c=0;
-				 lin1.push(c);
-                 //rmtx[ii][cc]=c;
-			   }
-				rmtx.push(lin1);
-            }
+     }; 
+
+     //loop3: loop de linhas e colulas p/criar arraynew: normaliza  subtrai da média e multiplica por stdev
+      for(ii=0;ii<plines;ii++)
+      {
+        var lin1=[];
+        for(cc=0;cc<pnumparams;cc++)
+        {
+          var c=parseFloat(pmtx[ii][cc]);
+          //só normaliza se stdev != 0
+          if(pDM.gstdev[cc][0]!=0)
+            c=(c-pDM.gavg[cc][0])/pDM.gstdev[cc][0];
+          //else
+           // c=0;
+           lin1.push(c);
+           //rmtx[ii][cc]=c;
+         }
+        rmtx.push(lin1);
+      }
 
 			return rmtx;
 };
@@ -936,6 +987,7 @@ DM.prototype.describe=function(pmtx,options)
 			gmad:[],  //mean absolute deviatio
 			gmax:[],
 			gmin:[],
+			gsum:[],
 		} 
 	
 	//busca linhas e colunas automaticamente
@@ -953,6 +1005,7 @@ DM.prototype.describe=function(pmtx,options)
        gDM.gmin.push([0]);
        gDM.gmax.push([0]);
        gDM.gmad.push([0]);
+       gDM.gsum.push([0]);
     }
 	
 	if(cols>0)
@@ -969,6 +1022,7 @@ DM.prototype.describe=function(pmtx,options)
 		  emptyrow=[];emptyrow.push('mad');  DMstats.push(emptyrow);
 		  emptyrow=[];emptyrow.push('min');  DMstats.push(emptyrow);
 		  emptyrow=[];emptyrow.push('max');  DMstats.push(emptyrow);
+		  emptyrow=[];emptyrow.push('sum');  DMstats.push(emptyrow);
 	  
 		  
 	  //loop de colunas
@@ -983,6 +1037,7 @@ DM.prototype.describe=function(pmtx,options)
 		 emptyrow=DMstats[linha++]; emptyrow.push(gDM.gmad[i]);
 		 emptyrow=DMstats[linha++]; emptyrow.push(gDM.gmin[i]);
 		 emptyrow=DMstats[linha++]; emptyrow.push(gDM.gmax[i]);
+		 emptyrow=DMstats[linha++]; emptyrow.push(gDM.gsum[i]);
 	  }
 
 	 
