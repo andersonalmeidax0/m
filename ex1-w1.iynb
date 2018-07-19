@@ -1,0 +1,1137 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<h1>Curso Machine Learning WEEK 2</h1>\n",
+    "<h3>Week 1-Intro Linear Regression</h3>\n",
+    "<h3>Week 2-Linear Regression - Feature Scaling</h3>\n",
+    "<h3>Week 3-Linear Regression Regularization</h3>\n",
+    "<h1>Ex1a: Ploting - FoodProfitForPopulation</h1>"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "'5.7'"
+      ]
+     },
+     "execution_count": 1,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "dm = require('dm.js');\n",
+    "dm.getVersion();"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {
+    "scrolled": true
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "'FoodProfitForPopulation'"
+      ]
+     },
+     "execution_count": 2,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "process.cwd();\n",
+    "process.chdir('/data/0cursoml/w1');//labml/0cursoml/w1')\n",
+    "//require(\"fs\").readdirSync('.');\n",
+    "labname='FoodProfitForPopulation';"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<h3>Le arquivo FoodProfitForPopulation</h3>"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<table border=1><tr><td>PopulationDiv10k</td><td>ProfitDiv10k\r",
+       "</td></tr><tr><td>6.1101</td><td>17.592\r",
+       "</td></tr><tr><td>5.5277</td><td>9.1302\r",
+       "</td></tr><tr><td>8.5186</td><td>13.662\r",
+       "</td></tr><tr><td>7.0032</td><td>11.854\r",
+       "</td></tr><tr><td>5.8598</td><td>6.8233\r",
+       "</td></tr><tr><td>8.3829</td><td>11.886\r",
+       "</td></tr><tr><td>7.4764</td><td>4.3483\r",
+       "</td></tr><tr><td>8.5781</td><td>12\r",
+       "</td></tr><tr><td>6.4862</td><td>6.5987\r",
+       "</td></tr></table><p>Showing 10 lines.</p>"
+      ]
+     },
+     "execution_count": 3,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "//Le arquivo em array, e mostra head \"para ver como está\"\n",
+    "fileContents = require(\"fs\").readFileSync('foodprofitForPopulationDiv10kOK.csv');\n",
+    "arr_profitVsPop=dm.parseCSV(fileContents,';',{skipHeaders:false});\n",
+    "$$.html(dm.htmltable(dm.head(arr_profitVsPop)));"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "metadata": {
+    "scrolled": false
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<table border=1><tr><td>PopulationDiv10k</td><td>ProfitDiv10k\r",
+       "</td></tr><tr><td>6.1101</td><td>17.592\r",
+       "</td></tr><tr><td>5.5277</td><td>9.1302\r",
+       "</td></tr><tr><td>8.5186</td><td>13.662\r",
+       "</td></tr><tr><td>7.0032</td><td>11.854\r",
+       "</td></tr><tr><td>5.8598</td><td>6.8233\r",
+       "</td></tr><tr><td>8.3829</td><td>11.886\r",
+       "</td></tr><tr><td>7.4764</td><td>4.3483\r",
+       "</td></tr><tr><td>8.5781</td><td>12\r",
+       "</td></tr><tr><td>6.4862</td><td>6.5987\r",
+       "</td></tr><tr><td>5.0546</td><td>3.8166\r",
+       "</td></tr><tr><td>5.7107</td><td>3.2522\r",
+       "</td></tr><tr><td>14.164</td><td>15.505\r",
+       "</td></tr><tr><td>5.734</td><td>3.1551\r",
+       "</td></tr><tr><td>8.4084</td><td>7.2258\r",
+       "</td></tr><tr><td>5.6407</td><td>0.71618\r",
+       "</td></tr><tr><td>5.3794</td><td>3.5129\r",
+       "</td></tr><tr><td>6.3654</td><td>5.3048\r",
+       "</td></tr><tr><td>5.1301</td><td>0.56077\r",
+       "</td></tr><tr><td>6.4296</td><td>3.6518\r",
+       "</td></tr><tr><td>7.0708</td><td>5.3893\r",
+       "</td></tr><tr><td>6.1891</td><td>3.1386\r",
+       "</td></tr><tr><td>20.27</td><td>21.767\r",
+       "</td></tr><tr><td>5.4901</td><td>4.263\r",
+       "</td></tr><tr><td>6.3261</td><td>5.1875\r",
+       "</td></tr><tr><td>5.5649</td><td>3.0825\r",
+       "</td></tr><tr><td>18.945</td><td>22.638\r",
+       "</td></tr><tr><td>12.828</td><td>13.501\r",
+       "</td></tr><tr><td>10.957</td><td>7.0467\r",
+       "</td></tr><tr><td>13.176</td><td>14.692\r",
+       "</td></tr><tr><td>22.203</td><td>24.147\r",
+       "</td></tr><tr><td>5.2524</td><td>-1.22\r",
+       "</td></tr><tr><td>6.5894</td><td>5.9966\r",
+       "</td></tr><tr><td>9.2482</td><td>12.134\r",
+       "</td></tr><tr><td>5.8918</td><td>1.8495\r",
+       "</td></tr><tr><td>8.2111</td><td>6.5426\r",
+       "</td></tr><tr><td>7.9334</td><td>4.5623\r",
+       "</td></tr><tr><td>8.0959</td><td>4.1164\r",
+       "</td></tr><tr><td>5.6063</td><td>3.3928\r",
+       "</td></tr><tr><td>12.836</td><td>10.117\r",
+       "</td></tr><tr><td>6.3534</td><td>5.4974\r",
+       "</td></tr><tr><td>5.4069</td><td>0.55657\r",
+       "</td></tr><tr><td>6.8825</td><td>3.9115\r",
+       "</td></tr><tr><td>11.708</td><td>5.3854\r",
+       "</td></tr><tr><td>5.7737</td><td>2.4406\r",
+       "</td></tr><tr><td>7.8247</td><td>6.7318\r",
+       "</td></tr><tr><td>7.0931</td><td>1.0463\r",
+       "</td></tr><tr><td>5.0702</td><td>5.1337\r",
+       "</td></tr><tr><td>5.8014</td><td>1.844\r",
+       "</td></tr><tr><td>11.7</td><td>8.0043\r",
+       "</td></tr><tr><td>5.5416</td><td>1.0179\r",
+       "</td></tr><tr><td>7.5402</td><td>6.7504\r",
+       "</td></tr><tr><td>5.3077</td><td>1.8396\r",
+       "</td></tr><tr><td>7.4239</td><td>4.2885\r",
+       "</td></tr><tr><td>7.6031</td><td>4.9981\r",
+       "</td></tr><tr><td>6.3328</td><td>1.4233\r",
+       "</td></tr><tr><td>6.3589</td><td>-1.4211\r",
+       "</td></tr><tr><td>6.2742</td><td>2.4756\r",
+       "</td></tr><tr><td>5.6397</td><td>4.6042\r",
+       "</td></tr><tr><td>9.3102</td><td>3.9624\r",
+       "</td></tr><tr><td>9.4536</td><td>5.4141\r",
+       "</td></tr><tr><td>8.8254</td><td>5.1694\r",
+       "</td></tr><tr><td>5.1793</td><td>-0.74279\r",
+       "</td></tr><tr><td>21.279</td><td>17.929\r",
+       "</td></tr><tr><td>14.908</td><td>12.054\r",
+       "</td></tr><tr><td>18.959</td><td>17.054\r",
+       "</td></tr><tr><td>7.2182</td><td>4.8852\r",
+       "</td></tr><tr><td>8.2951</td><td>5.7442\r",
+       "</td></tr><tr><td>10.236</td><td>7.7754\r",
+       "</td></tr><tr><td>5.4994</td><td>1.0173\r",
+       "</td></tr><tr><td>20.341</td><td>20.992\r",
+       "</td></tr><tr><td>10.136</td><td>6.6799\r",
+       "</td></tr><tr><td>7.3345</td><td>4.0259\r",
+       "</td></tr><tr><td>6.0062</td><td>1.2784\r",
+       "</td></tr><tr><td>7.2259</td><td>3.3411\r",
+       "</td></tr><tr><td>5.0269</td><td>-2.6807\r",
+       "</td></tr><tr><td>6.5479</td><td>0.29678\r",
+       "</td></tr><tr><td>7.5386</td><td>3.8845\r",
+       "</td></tr><tr><td>5.0365</td><td>5.7014\r",
+       "</td></tr><tr><td>10.274</td><td>6.7526\r",
+       "</td></tr><tr><td>5.1077</td><td>2.0576\r",
+       "</td></tr><tr><td>5.7292</td><td>0.47953\r",
+       "</td></tr><tr><td>5.1884</td><td>0.20421\r",
+       "</td></tr><tr><td>6.3557</td><td>0.67861\r",
+       "</td></tr><tr><td>9.7687</td><td>7.5435\r",
+       "</td></tr><tr><td>6.5159</td><td>5.3436\r",
+       "</td></tr><tr><td>8.5172</td><td>4.2415\r",
+       "</td></tr><tr><td>9.1802</td><td>6.7981\r",
+       "</td></tr><tr><td>6.002</td><td>0.92695\r",
+       "</td></tr><tr><td>5.5204</td><td>0.152\r",
+       "</td></tr><tr><td>5.0594</td><td>2.8214\r",
+       "</td></tr><tr><td>5.7077</td><td>1.8451\r",
+       "</td></tr><tr><td>7.6366</td><td>4.2959\r",
+       "</td></tr><tr><td>5.8707</td><td>7.2029\r",
+       "</td></tr><tr><td>5.3054</td><td>1.9869\r",
+       "</td></tr><tr><td>8.2934</td><td>0.14454\r",
+       "</td></tr><tr><td>13.394</td><td>9.0551\r",
+       "</td></tr><tr><td>5.4369</td><td>0.61705</td></tr></table><p>Showing 98 lines.</p>"
+      ]
+     },
+     "execution_count": 4,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "//verifica dadosl\n",
+    "$$.html(dm.htmltable((arr_profitVsPop)));"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "{ rows: 98, cols: 2 }"
+      ]
+     },
+     "execution_count": 5,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "dm.shape(arr_profitVsPop)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<h3>Describe - Food Profit</h3>"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "xzxzzxzxzxzxzzxzxzzxzxzxz {\"hasHeaders\":false}\n"
+     ]
+    },
+    {
+     "data": {
+      "text/html": [
+       "<table border=1><tr><td>0</td><td>PopulationDiv10k</td><td>ProfitDiv10k\r",
+       "</td></tr><tr><td>avg</td><td>8.159800000000002</td><td>5.83913505154639</td></tr><tr><td>std</td><td>3.849883995922716</td><td>5.48178525707763</td></tr><tr><td>mad</td><td>2.6843608247422686</td><td>3.992810479328302</td></tr><tr><td>min</td><td>5.0269</td><td>-2.6807</td></tr><tr><td>max</td><td>22.203</td><td>24.147</td></tr><tr><td>sum</td><td>791.5006000000003</td><td>566.3960999999998</td></tr></table><p>Showing 7 lines.</p>"
+      ]
+     },
+     "execution_count": 6,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "cn=arr_profitVsPop[0]; //cn=collnames, primeira linha\n",
+    "cnDesc=cn.slice(0);//clone\n",
+    "cnDesc.unshift(0);//adiciona uma coluna no inicio\n",
+    "$$.html(dm.htmltable(dm.addHeader(dm.describe(dm.noHeader(arr_profitVsPop)),cnDesc)))\n",
+    "//dm.describe(arr_profitVsPop,{hasHeaders:true});"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<h3>Regressao - Food Profit</h3>"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "var jsregression = require('jsregression.js');"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "metadata": {
+    "scrolled": true
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "{ theta: [ -3.613253040376248, 1.1646406071801243 ],\n",
+      "  dim: 2,\n",
+      "  cost: 4.491667236219575,\n",
+      "  config: { alpha: 0.01, lambda: 0.1, iterations: 1500 } }\n"
+     ]
+    }
+   ],
+   "source": [
+    "var regression = new jsregression.LinearRegression({\n",
+    " alpha: 0.01, // \n",
+    " iterations: 1500,\n",
+    " lambda: 0.1,\n",
+    "trace: false\n",
+    "});\n",
+    "var model = regression.fit((dm.noHeader(arr_profitVsPop)));\n",
+    "console.log(model);\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "4629.890847541867"
+      ]
+     },
+     "execution_count": 9,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "predicted_y = regression.transform([35000/10000])*10000\n",
+    "//predicted_y = regression.transform([70000/10000])*10000\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "45392.31209884621"
+      ]
+     },
+     "execution_count": 10,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "//predicted_y = regression.transform([35000/10000])*10000\n",
+    "predicted_y = regression.transform([70000/10000])*10000\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<h2>RESULT:Prediction para profitForPopulation Funvcionou!!!!</h2>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<h1>TEST: Predict multiplic by 2</h1>"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "xzxzzxzxzxzxzzxzxzzxzxzxz {\"hasHeaders\":false}\n"
+     ]
+    },
+    {
+     "data": {
+      "text/html": [
+       "<table border=1><tr><td>0</td><td>number</td><td>multipliedBy2\r",
+       "</td></tr><tr><td>avg</td><td>5.5</td><td>11</td></tr><tr><td>std</td><td>2.8722813232690143</td><td>5.744562646538029</td></tr><tr><td>mad</td><td>2.5</td><td>5</td></tr><tr><td>min</td><td>1</td><td>2</td></tr><tr><td>max</td><td>10</td><td>20</td></tr><tr><td>sum</td><td>55</td><td>110</td></tr></table><p>Showing 7 lines.</p>"
+      ]
+     },
+     "execution_count": 11,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "fileContents = require(\"fs\").readFileSync('multiplicBy2.csv');\n",
+    "arr_m=dm.parseCSV(fileContents,',',{skipHeaders:false});\n",
+    "//$$.html(dm.htmltable(dm.head(arr_m)));\n",
+    "cn=arr_m[0]; //cn=collnames, primeira linha\n",
+    "cnDesc=cn.slice(0);//clone\n",
+    "cnDesc.unshift(0);//adiciona uma coluna no inicio\n",
+    "$$.html(dm.htmltable(dm.addHeader(dm.describe(dm.noHeader(arr_m)),cnDesc)))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "{ theta: [ 0.1848681898613319, 1.9734454313738732 ],\n",
+      "  dim: 2,\n",
+      "  cost: 0.0036621445839733467,\n",
+      "  config: { alpha: 0.01, lambda: 0, iterations: 200 } }\n"
+     ]
+    }
+   ],
+   "source": [
+    "var regression = new jsregression.LinearRegression({\n",
+    " alpha: 0.01, // \n",
+    " iterations: 200,\n",
+    " lambda: 0.0,\n",
+    "trace: false\n",
+    "});\n",
+    "var model = regression.fit((dm.noHeader(arr_m)));\n",
+    "console.log(model);"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "13.998986209478444"
+      ]
+     },
+     "execution_count": 13,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "predicted_y = regression.transform([7]);"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<h2>Prediction para x*2 funcionou, e bateu com o nnserver</h2>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<h1>Ex2a:  HousePricesForAtribs</h1>"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "metadata": {
+    "scrolled": true
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "[ [ '2104', '3', '399900\\r' ],\n",
+       "  [ '1600', '3', '329900\\r' ],\n",
+       "  [ '2400', '3', '369000\\r' ],\n",
+       "  [ '1416', '2', '232000\\r' ],\n",
+       "  [ '3000', '4', '539900\\r' ],\n",
+       "  [ '1985', '4', '299900\\r' ],\n",
+       "  [ '1534', '3', '314900\\r' ],\n",
+       "  [ '1427', '3', '198999\\r' ],\n",
+       "  [ '1380', '3', '212000\\r' ],\n",
+       "  [ '1494', '3', '242500\\r' ],\n",
+       "  [ '1940', '4', '239999\\r' ],\n",
+       "  [ '2000', '3', '347000\\r' ],\n",
+       "  [ '1890', '3', '329999\\r' ],\n",
+       "  [ '4478', '5', '699900\\r' ],\n",
+       "  [ '1268', '3', '259900\\r' ],\n",
+       "  [ '2300', '4', '449900\\r' ],\n",
+       "  [ '1320', '2', '299900\\r' ],\n",
+       "  [ '1236', '3', '199900\\r' ],\n",
+       "  [ '2609', '4', '499998\\r' ],\n",
+       "  [ '3031', '4', '599000\\r' ],\n",
+       "  [ '1767', '3', '252900\\r' ],\n",
+       "  [ '1888', '2', '255000\\r' ],\n",
+       "  [ '1604', '3', '242900\\r' ],\n",
+       "  [ '1962', '4', '259900\\r' ],\n",
+       "  [ '3890', '3', '573900\\r' ],\n",
+       "  [ '1100', '3', '249900\\r' ],\n",
+       "  [ '1458', '3', '464500\\r' ],\n",
+       "  [ '2526', '3', '469000\\r' ],\n",
+       "  [ '2200', '3', '475000\\r' ],\n",
+       "  [ '2637', '3', '299900\\r' ],\n",
+       "  [ '1839', '2', '349900\\r' ],\n",
+       "  [ '1000', '1', '169900\\r' ],\n",
+       "  [ '2040', '4', '314900\\r' ],\n",
+       "  [ '3137', '3', '579900\\r' ],\n",
+       "  [ '1811', '4', '285900\\r' ],\n",
+       "  [ '1437', '3', '249900\\r' ],\n",
+       "  [ '1239', '3', '229900\\r' ],\n",
+       "  [ '2132', '4', '345000\\r' ],\n",
+       "  [ '4215', '4', '549000\\r' ],\n",
+       "  [ '2162', '4', '287000\\r' ],\n",
+       "  [ '1664', '2', '368500\\r' ],\n",
+       "  [ '2238', '3', '329900\\r' ],\n",
+       "  [ '2567', '4', '314000\\r' ],\n",
+       "  [ '1200', '3', '299000\\r' ],\n",
+       "  [ '852', '2', '179900\\r' ],\n",
+       "  [ '1852', '4', '299900\\r' ],\n",
+       "  [ '1203', '3', '239500' ] ]"
+      ]
+     },
+     "execution_count": 14,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "fileContents = require(\"fs\").readFileSync('housepriceForSizeBedroomsUS.csv');\n",
+    "arr_m=dm.parseCSV(fileContents,',',{skipHeaders:false});\n",
+    "//$$.html(dm.htmltable(dm.head(arr_m)));\n",
+    "dm.noHeader(arr_m)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<h3>Describe - House Prices</h3>"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 15,
+   "metadata": {
+    "scrolled": true
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "xzxzzxzxzxzxzzxzxzzxzxzxz {\"hasHeaders\":false}\n"
+     ]
+    },
+    {
+     "data": {
+      "text/html": [
+       "<table border=1><tr><td>0</td><td>HouseSizeFeetSq</td><td>NumBedrooms</td><td>HousePriceUS\r",
+       "</td></tr><tr><td>avg</td><td>2000.6808510638298</td><td>3.1702127659574466</td><td>340412.6595744681</td></tr><tr><td>std</td><td>786.2026187430467</td><td>0.7528428090618782</td><td>123702.53600614739</td></tr><tr><td>mad</td><td>581.010411951109</td><td>0.57220461747397</td><td>97543.94839293795</td></tr><tr><td>min</td><td>852</td><td>1</td><td>169900</td></tr><tr><td>max</td><td>4478</td><td>5</td><td>699900</td></tr><tr><td>sum</td><td>94032</td><td>149</td><td>15999395</td></tr></table><p>Showing 7 lines.</p>"
+      ]
+     },
+     "execution_count": 15,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "cn=arr_m[0]; //cn=collnames, primeira linha\n",
+    "cnDesc=cn.slice(0);//clone\n",
+    "cnDesc.unshift(0);//adiciona uma coluna no inicio\n",
+    "$$.html(dm.htmltable(dm.addHeader(dm.describe(dm.noHeader(arr_m)),cnDesc)))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Como os valores sao muito grandes, precisa normalizar para diminuir."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 16,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "xzxzzxzxzxzxzzxzxzzxzxzxz {\"hasHeaders\":true,\"lastColumn\":false}\n"
+     ]
+    },
+    {
+     "data": {
+      "text/html": [
+       "<table border=1><tr><td>0.13141542202104753</td><td>-0.22609336757768828</td><td>399900</td></tr><tr><td>-0.5096406975906851</td><td>-0.22609336757768828</td><td>329900</td></tr><tr><td>0.5079086986184144</td><td>-0.22609336757768828</td><td>369000</td></tr><tr><td>-0.743677058718778</td><td>-1.5543919020966084</td><td>232000</td></tr><tr><td>1.2710707457752388</td><td>1.1022051669412318</td><td>539900</td></tr><tr><td>-0.019945050665056006</td><td>1.1022051669412318</td><td>299900</td></tr><tr><td>-0.5935885227779358</td><td>-0.22609336757768828</td><td>314900</td></tr><tr><td>-0.7296857545209029</td><td>-0.22609336757768828</td><td>198999</td></tr><tr><td>-0.7894667815481874</td><td>-0.22609336757768828</td><td>212000</td></tr><tr><td>-0.6444659925883908</td><td>-0.22609336757768828</td><td>242500</td></tr><tr><td>-0.07718220420181784</td><td>1.1022051669412318</td><td>239999</td></tr><tr><td>-0.0008659994861353915</td><td>-0.22609336757768828</td><td>347000</td></tr><tr><td>-0.14077904146488657</td><td>-0.22609336757768828</td><td>329999</td></tr><tr><td>3.15099325527155</td><td>2.430503701460152</td><td>699900</td></tr><tr><td>-0.9319236970174614</td><td>-0.22609336757768828</td><td>259900</td></tr><tr><td>0.38071502409227687</td><td>1.1022051669412318</td><td>449900</td></tr><tr><td>-0.8657829862638698</td><td>-1.5543919020966084</td><td>299900</td></tr><tr><td>-0.9726256728658254</td><td>-0.22609336757768828</td><td>199900</td></tr><tr><td>0.7737434783780416</td><td>1.1022051669412318</td><td>499998</td></tr><tr><td>1.3105007848783414</td><td>1.1022051669412318</td><td>599000</td></tr><tr><td>-0.29722726113203557</td><td>-0.22609336757768828</td><td>252900</td></tr><tr><td>-0.1433229149554093</td><td>-1.5543919020966084</td><td>255000</td></tr><tr><td>-0.5045529506096396</td><td>-0.22609336757768828</td><td>242900</td></tr><tr><td>-0.049199595806067614</td><td>1.1022051669412318</td><td>259900</td></tr><tr><td>2.403094449057862</td><td>-0.22609336757768828</td><td>573900</td></tr><tr><td>-1.1456090702213721</td><td>-0.22609336757768828</td><td>249900</td></tr><tr><td>-0.6902557154178003</td><td>-0.22609336757768828</td><td>464500</td></tr><tr><td>0.6681727285213475</td><td>-0.22609336757768828</td><td>469000</td></tr><tr><td>0.2535213495661395</td><td>-0.22609336757768828</td><td>475000</td></tr><tr><td>0.80935770724536</td><td>-0.22609336757768828</td><td>299900</td></tr><tr><td>-0.20564781547321664</td><td>-1.5543919020966084</td><td>349900</td></tr><tr><td>-1.2728027447475097</td><td>-2.8826904366155284</td><td>169900</td></tr><tr><td>0.05001147032431958</td><td>1.1022051669412318</td><td>314900</td></tr><tr><td>1.4453260798760472</td><td>-0.22609336757768828</td><td>579900</td></tr><tr><td>-0.24126204434053514</td><td>1.1022051669412318</td><td>285900</td></tr><tr><td>-0.7169663870682891</td><td>-0.22609336757768828</td><td>249900</td></tr><tr><td>-0.9688098626300412</td><td>-0.22609336757768828</td><td>229900</td></tr><tr><td>0.16702965088836602</td><td>1.1022051669412318</td><td>345000</td></tr><tr><td>2.8164738912678087</td><td>1.1022051669412318</td><td>549000</td></tr><tr><td>0.20518775324620725</td><td>1.1022051669412318</td><td>287000</td></tr><tr><td>-0.42823674589395716</td><td>-1.5543919020966084</td><td>368500</td></tr><tr><td>0.3018549458860717</td><td>-0.22609336757768828</td><td>329900</td></tr><tr><td>0.7203221350770638</td><td>1.1022051669412318</td><td>314000</td></tr><tr><td>-1.0184153956952349</td><td>-0.22609336757768828</td><td>299000</td></tr><tr><td>-1.461049383046193</td><td>-1.5543919020966084</td><td>179900</td></tr><tr><td>-0.1891126377848188</td><td>1.1022051669412318</td><td>299900</td></tr><tr><td>-1.0145995854594507</td><td>-0.22609336757768828</td><td>239500</td></tr></table><p>Showing 47 lines.</p>"
+      ]
+     },
+     "execution_count": 16,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "//X=dm.mget2(arr_m,0,arr_m.length,0,2);\n",
+    "//Y=dm.mget2(arr_m,0,arr_m.length,2,3);\n",
+    "norm=dm.normalizeMatrixNew(arr_m,{\"hasHeaders\":true,\"lastColumn\":false});\n",
+    "$$.html(dm.htmltable(norm.m))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<h3>Regressao - house prices </h3>"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 17,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "{ count: [ [ 47 ], [ 47 ], [ 47 ] ],\n",
+       "  gavg: \n",
+       "   [ [ 2000.6808510638298 ],\n",
+       "     [ 3.1702127659574466 ],\n",
+       "     [ 340412.6595744681 ] ],\n",
+       "  gstdev: \n",
+       "   [ [ 786.2026187430467 ],\n",
+       "     [ 0.7528428090618782 ],\n",
+       "     [ 123702.53600614739 ] ],\n",
+       "  gmad: \n",
+       "   [ [ 581.010411951109 ],\n",
+       "     [ 0.57220461747397 ],\n",
+       "     [ 97543.94839293795 ] ],\n",
+       "  gmax: [ [ 4478 ], [ 5 ], [ 699900 ] ],\n",
+       "  gmin: [ [ 852 ], [ 1 ], [ 169900 ] ],\n",
+       "  gsum: [ [ 94032 ], [ 149 ], [ 15999395 ] ] }"
+      ]
+     },
+     "execution_count": 17,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "norm.dm"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 18,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "{ theta: [ 334363.1699490889, 99456.68211323729, 3224.759428674855 ],\n",
+      "  dim: 3,\n",
+      "  cost: 2104694472.8934023,\n",
+      "  config: { alpha: 0.01, lambda: 0, iterations: 401 } }\n"
+     ]
+    }
+   ],
+   "source": [
+    "var regression = new jsregression.LinearRegression({\n",
+    " alpha: 0.01, // \n",
+    " iterations: 401,  //\n",
+    " lambda: 0.0,\n",
+    "trace: false,\n",
+    "traceXY: false\n",
+    "});\n",
+    "var model = regression.fit(norm.m);\n",
+    "console.log(model);"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<h1>Prediction para preco de houses por tam  Funcionou</h1>"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 19,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "'-0.4460438603276164,-0.22609336757768828'"
+      ]
+     },
+     "execution_count": 19,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "norm.dm.gavg[0]\n",
+    "norm.dm.gavg[1]\n",
+    "norm.dm.gstdev[0]\n",
+    "norm.dm.gstdev[1]\n",
+    "sizeNorm = dm.normalizeValue(1650,norm.dm.gavg[0],norm.dm.gstdev[0]);\n",
+    "numbedNorm = dm.normalizeValue(3,norm.dm.gavg[1],norm.dm.gstdev[1]);\n",
+    "s=sizeNorm+','+numbedNorm"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 20,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "289272.0308050669"
+      ]
+     },
+     "execution_count": 20,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "predicted_y = regression.transform([sizeNorm,numbedNorm])\n",
+    "\n",
+    "    "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<h1>Prediction para preco de houses por Funcionou!!!</h1>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<h1>Curso Machine Learning WEEK 3</h1>\n",
+    "<h3>Week 3-Logistic Regression, Multiclass,  Regularization</h3>\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<h3>Ex2a: StudentAdmitedFromScores</h3>"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<h3>Le arquivo FoodProfitForPopulation</h3>"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 21,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<table border=1><tr><td>score1</td><td>score2</td><td>admited\r",
+       "</td></tr><tr><td>34.62365962451697</td><td>78.0246928153624</td><td>0\r",
+       "</td></tr><tr><td>30.28671076822607</td><td>43.89499752400101</td><td>0\r",
+       "</td></tr><tr><td>35.84740876993872</td><td>72.90219802708364</td><td>0\r",
+       "</td></tr><tr><td>60.18259938620976</td><td>86.30855209546826</td><td>1\r",
+       "</td></tr><tr><td>79.0327360507101</td><td>75.3443764369103</td><td>1\r",
+       "</td></tr><tr><td>45.08327747668339</td><td>56.3163717815305</td><td>0\r",
+       "</td></tr><tr><td>61.10666453684766</td><td>96.51142588489624</td><td>1\r",
+       "</td></tr><tr><td>75.02474556738889</td><td>46.55401354116538</td><td>1\r",
+       "</td></tr><tr><td>76.09878670226257</td><td>87.42056971926803</td><td>1\r",
+       "</td></tr></table><p>Showing 10 lines.</p>"
+      ]
+     },
+     "execution_count": 21,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "//Le arquivo em array, e mostra head \"para ver como está\"\n",
+    "fileContents = require(\"fs\").readFileSync('ex2studentadmitedFromScores.csv');\n",
+    "arr_m=dm.parseCSV(fileContents,',',{skipHeaders:false});\n",
+    "$$.html(dm.htmltable(dm.head(arr_m)));"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 22,
+   "metadata": {
+    "scrolled": false
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<table border=1><tr><td>score1</td><td>score2</td><td>admited\r",
+       "</td></tr><tr><td>34.62365962451697</td><td>78.0246928153624</td><td>0\r",
+       "</td></tr><tr><td>30.28671076822607</td><td>43.89499752400101</td><td>0\r",
+       "</td></tr><tr><td>35.84740876993872</td><td>72.90219802708364</td><td>0\r",
+       "</td></tr><tr><td>60.18259938620976</td><td>86.30855209546826</td><td>1\r",
+       "</td></tr><tr><td>79.0327360507101</td><td>75.3443764369103</td><td>1\r",
+       "</td></tr><tr><td>45.08327747668339</td><td>56.3163717815305</td><td>0\r",
+       "</td></tr><tr><td>61.10666453684766</td><td>96.51142588489624</td><td>1\r",
+       "</td></tr><tr><td>75.02474556738889</td><td>46.55401354116538</td><td>1\r",
+       "</td></tr><tr><td>76.09878670226257</td><td>87.42056971926803</td><td>1\r",
+       "</td></tr><tr><td>84.43281996120035</td><td>43.53339331072109</td><td>1\r",
+       "</td></tr><tr><td>95.86155507093572</td><td>38.22527805795094</td><td>0\r",
+       "</td></tr><tr><td>75.01365838958247</td><td>30.60326323428011</td><td>0\r",
+       "</td></tr><tr><td>82.30705337399482</td><td>76.48196330235604</td><td>1\r",
+       "</td></tr><tr><td>69.36458875970939</td><td>97.71869196188608</td><td>1\r",
+       "</td></tr><tr><td>39.53833914367223</td><td>76.03681085115882</td><td>0\r",
+       "</td></tr><tr><td>53.9710521485623</td><td>89.20735013750205</td><td>1\r",
+       "</td></tr><tr><td>69.07014406283025</td><td>52.74046973016765</td><td>1\r",
+       "</td></tr><tr><td>67.94685547711617</td><td>46.67857410673128</td><td>0\r",
+       "</td></tr><tr><td>70.66150955499435</td><td>92.92713789364831</td><td>1\r",
+       "</td></tr><tr><td>76.97878372747498</td><td>47.57596364975532</td><td>1\r",
+       "</td></tr><tr><td>67.37202754570876</td><td>42.83843832029179</td><td>0\r",
+       "</td></tr><tr><td>89.67677575072079</td><td>65.79936592745237</td><td>1\r",
+       "</td></tr><tr><td>50.534788289883</td><td>48.85581152764205</td><td>0\r",
+       "</td></tr><tr><td>34.21206097786789</td><td>44.20952859866288</td><td>0\r",
+       "</td></tr><tr><td>77.9240914545704</td><td>68.9723599933059</td><td>1\r",
+       "</td></tr><tr><td>62.27101367004632</td><td>69.95445795447587</td><td>1\r",
+       "</td></tr><tr><td>80.1901807509566</td><td>44.82162893218353</td><td>1\r",
+       "</td></tr><tr><td>93.114388797442</td><td>38.80067033713209</td><td>0\r",
+       "</td></tr><tr><td>61.83020602312595</td><td>50.25610789244621</td><td>0\r",
+       "</td></tr><tr><td>38.78580379679423</td><td>64.99568095539578</td><td>0\r",
+       "</td></tr><tr><td>61.379289447425</td><td>72.80788731317097</td><td>1\r",
+       "</td></tr><tr><td>85.40451939411645</td><td>57.05198397627122</td><td>1\r",
+       "</td></tr><tr><td>52.10797973193984</td><td>63.12762376881715</td><td>0\r",
+       "</td></tr><tr><td>52.04540476831827</td><td>69.43286012045222</td><td>1\r",
+       "</td></tr><tr><td>40.23689373545111</td><td>71.16774802184875</td><td>0\r",
+       "</td></tr><tr><td>54.63510555424817</td><td>52.21388588061123</td><td>0\r",
+       "</td></tr><tr><td>33.91550010906887</td><td>98.86943574220611</td><td>0\r",
+       "</td></tr><tr><td>64.17698887494485</td><td>80.90806058670817</td><td>1\r",
+       "</td></tr><tr><td>74.78925295941542</td><td>41.57341522824434</td><td>0\r",
+       "</td></tr><tr><td>34.1836400264419</td><td>75.2377203360134</td><td>0\r",
+       "</td></tr><tr><td>83.90239366249155</td><td>56.30804621605327</td><td>1\r",
+       "</td></tr><tr><td>51.54772026906181</td><td>46.85629026349976</td><td>0\r",
+       "</td></tr><tr><td>94.44336776917852</td><td>65.56892160559052</td><td>1\r",
+       "</td></tr><tr><td>82.36875375713919</td><td>40.61825515970618</td><td>0\r",
+       "</td></tr><tr><td>51.04775177128865</td><td>45.82270145776001</td><td>0\r",
+       "</td></tr><tr><td>62.22267576120188</td><td>52.06099194836679</td><td>0\r",
+       "</td></tr><tr><td>77.19303492601364</td><td>70.45820000180959</td><td>1\r",
+       "</td></tr><tr><td>97.77159928000232</td><td>86.7278223300282</td><td>1\r",
+       "</td></tr><tr><td>62.07306379667647</td><td>96.76882412413983</td><td>1\r",
+       "</td></tr><tr><td>91.56497449807442</td><td>88.69629254546599</td><td>1\r",
+       "</td></tr><tr><td>79.94481794066932</td><td>74.16311935043758</td><td>1\r",
+       "</td></tr><tr><td>99.2725269292572</td><td>60.99903099844988</td><td>1\r",
+       "</td></tr><tr><td>90.54671411399852</td><td>43.39060180650027</td><td>1\r",
+       "</td></tr><tr><td>34.52451385320009</td><td>60.39634245837173</td><td>0\r",
+       "</td></tr><tr><td>50.2864961189907</td><td>49.80453881323059</td><td>0\r",
+       "</td></tr><tr><td>49.58667721632031</td><td>59.80895099453265</td><td>0\r",
+       "</td></tr><tr><td>97.64563396007767</td><td>68.86157272420604</td><td>1\r",
+       "</td></tr><tr><td>32.57720016809309</td><td>95.59854761387875</td><td>0\r",
+       "</td></tr><tr><td>74.24869136721598</td><td>69.82457122657193</td><td>1\r",
+       "</td></tr><tr><td>71.79646205863379</td><td>78.45356224515052</td><td>1\r",
+       "</td></tr><tr><td>75.3956114656803</td><td>85.75993667331619</td><td>1\r",
+       "</td></tr><tr><td>35.28611281526193</td><td>47.02051394723416</td><td>0\r",
+       "</td></tr><tr><td>56.25381749711624</td><td>39.26147251058019</td><td>0\r",
+       "</td></tr><tr><td>30.05882244669796</td><td>49.59297386723685</td><td>0\r",
+       "</td></tr><tr><td>44.66826172480893</td><td>66.45008614558913</td><td>0\r",
+       "</td></tr><tr><td>66.56089447242954</td><td>41.09209807936973</td><td>0\r",
+       "</td></tr><tr><td>40.45755098375164</td><td>97.53518548909936</td><td>1\r",
+       "</td></tr><tr><td>49.07256321908844</td><td>51.88321182073966</td><td>0\r",
+       "</td></tr><tr><td>80.27957401466998</td><td>92.11606081344084</td><td>1\r",
+       "</td></tr><tr><td>66.74671856944039</td><td>60.99139402740988</td><td>1\r",
+       "</td></tr><tr><td>32.72283304060323</td><td>43.30717306430063</td><td>0\r",
+       "</td></tr><tr><td>64.0393204150601</td><td>78.03168802018232</td><td>1\r",
+       "</td></tr><tr><td>72.34649422579923</td><td>96.22759296761404</td><td>1\r",
+       "</td></tr><tr><td>60.45788573918959</td><td>73.09499809758037</td><td>1\r",
+       "</td></tr><tr><td>58.84095621726802</td><td>75.85844831279042</td><td>1\r",
+       "</td></tr><tr><td>99.82785779692128</td><td>72.36925193383885</td><td>1\r",
+       "</td></tr><tr><td>47.26426910848174</td><td>88.47586499559782</td><td>1\r",
+       "</td></tr><tr><td>50.45815980285988</td><td>75.80985952982456</td><td>1\r",
+       "</td></tr><tr><td>60.45555629271532</td><td>42.50840943572217</td><td>0\r",
+       "</td></tr><tr><td>82.22666157785568</td><td>42.71987853716458</td><td>0\r",
+       "</td></tr><tr><td>88.9138964166533</td><td>69.80378889835472</td><td>1\r",
+       "</td></tr><tr><td>94.83450672430196</td><td>45.69430680250754</td><td>1\r",
+       "</td></tr><tr><td>67.31925746917527</td><td>66.58935317747915</td><td>1\r",
+       "</td></tr><tr><td>57.23870631569862</td><td>59.51428198012956</td><td>1\r",
+       "</td></tr><tr><td>80.36675600171273</td><td>90.96014789746954</td><td>1\r",
+       "</td></tr><tr><td>68.46852178591112</td><td>85.59430710452014</td><td>1\r",
+       "</td></tr><tr><td>42.0754545384731</td><td>78.84478600148043</td><td>0\r",
+       "</td></tr><tr><td>75.47770200533905</td><td>90.42453899753964</td><td>1\r",
+       "</td></tr><tr><td>78.63542434898018</td><td>96.64742716885644</td><td>1\r",
+       "</td></tr><tr><td>52.34800398794107</td><td>60.76950525602592</td><td>0\r",
+       "</td></tr><tr><td>94.09433112516793</td><td>77.15910509073893</td><td>1\r",
+       "</td></tr><tr><td>90.44855097096364</td><td>87.50879176484702</td><td>1\r",
+       "</td></tr><tr><td>55.48216114069585</td><td>35.57070347228866</td><td>0\r",
+       "</td></tr><tr><td>74.49269241843041</td><td>84.84513684930135</td><td>1\r",
+       "</td></tr><tr><td>89.84580670720979</td><td>45.35828361091658</td><td>1\r",
+       "</td></tr><tr><td>83.48916274498238</td><td>48.38028579728175</td><td>1\r",
+       "</td></tr><tr><td>42.2617008099817</td><td>87.10385094025457</td><td>1\r",
+       "</td></tr><tr><td>99.31500880510394</td><td>68.77540947206617</td><td>1\r",
+       "</td></tr><tr><td>55.34001756003703</td><td>64.9319380069486</td><td>1\r",
+       "</td></tr><tr><td>74.77589300092767</td><td>89.52981289513276</td><td>1</td></tr></table><p>Showing 101 lines.</p>"
+      ]
+     },
+     "execution_count": 22,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "//verifica dadosl\n",
+    "$$.html(dm.htmltable((arr_m)));"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 23,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "{ rows: 98, cols: 2 }"
+      ]
+     },
+     "execution_count": 23,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "dm.shape(arr_profitVsPop)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<h3>Describe - Food Profit</h3>"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 24,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "xzxzzxzxzxzxzzxzxzzxzxzxz {\"hasHeaders\":false}\n"
+     ]
+    },
+    {
+     "data": {
+      "text/html": [
+       "<table border=1><tr><td>0</td><td>score1</td><td>score2</td><td>admited\r",
+       "</td></tr><tr><td>avg</td><td>65.64427405732319</td><td>66.22199808811695</td><td>0.6</td></tr><tr><td>std</td><td>19.360686712476134</td><td>18.48963567058878</td><td>0.4898979485566356</td></tr><tr><td>mad</td><td>16.426450305614697</td><td>15.955166800204847</td><td>0.4799999999999997</td></tr><tr><td>min</td><td>30.05882244669796</td><td>30.60326323428011</td><td>0</td></tr><tr><td>max</td><td>99.82785779692128</td><td>98.86943574220611</td><td>1</td></tr><tr><td>sum</td><td>6564.427405732318</td><td>6622.199808811694</td><td>60</td></tr></table><p>Showing 7 lines.</p>"
+      ]
+     },
+     "execution_count": 24,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "cn=arr_m[0]; //cn=collnames, primeira linha\n",
+    "cnDesc=cn.slice(0);//clone\n",
+    "cnDesc.unshift(0);//adiciona uma coluna no inicio\n",
+    "$$.html(dm.htmltable(dm.addHeader(dm.describe(dm.noHeader(arr_m)),cnDesc)))\n",
+    "//dm.describe(arr_profitVsPop,{hasHeaders:true});"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<h3>Regressao - Student Admited from scores</h3>"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 41,
+   "metadata": {
+    "scrolled": true
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "{ theta: \n",
+      "   [ -0.06946097459445377,\n",
+      "     0.010907328656905297,\n",
+      "     0.0009913547184689571 ],\n",
+      "  threshold: 0.4953886652817156,\n",
+      "  cost: 0.6249857589104832,\n",
+      "  config: { alpha: 0.001, lambda: 0, iterations: 1000 } }\n"
+     ]
+    }
+   ],
+   "source": [
+    "var regression = new jsregression.LogisticRegression({\n",
+    " alpha: 0.001, // \n",
+    " iterations: 1000,\n",
+    " lambda: 0.0,\n",
+    "trace: false\n",
+    "});\n",
+    "var model = regression.fit((dm.noHeader(arr_m)));\n",
+    "console.log(model);\n",
+    "//com 80.000 demore 4 minutos e cost fica 0.4125"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 42,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "0.623782417795631"
+      ]
+     },
+     "execution_count": 42,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "predicted_y = regression.transform([45,85])\n",
+    "//0.618\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "O resultado não fica muito proximo do exercicio com fminunc (0.77). Talvez tenha que ser mais iterations."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<h2>RESULT:Prediction para chipAcceptedFor tests \n",
+    "Funvcionou!!!!</h2>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<h3>falta: polynomial<br>falta: usar lambda (regularization). <br>Ex: chipAceptedForTests</h3>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "\n",
+    "<h1>Curso Machine Learning WEEK 4</h1>\n",
+    "<h3>Week 4-LogitReg  Multiclass Ove VS All,  NeuralNet (só predict, sem training, o trainig é fornecido</h3>\n",
+    "<h1>TODO: usar lib nn neural net. Teesta com and e or."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Javascript (Node.js)",
+   "language": "javascript",
+   "name": "javascript"
+  },
+  "language_info": {
+   "file_extension": ".js",
+   "mimetype": "application/javascript",
+   "name": "javascript",
+   "version": "8.11.1"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
