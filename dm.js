@@ -5,16 +5,16 @@
 /************************ DATA MANIPULATION FUNCTIONS   ********************/
 /************************ DATA MANIPULATION FUNCTIONS   ********************/
 /* *************************************************/
-//v5.4: bugs + unittest + scatter (not working)
+//v5.4: bugs + unittest
 //v5.5: describe com sum, refactor normalize
-
+//v5.6 normalize com option lastColumn
 /* *************************************************/
 /* Le arquivo e coloca num array de linhas */
 /* *************************************************/
 var DM = function (){};
 DM.prototype.getVersion=function () 
 { 
-	return '5.5'; 
+	return '5.7'; 
 };
 DM.prototype.help=function () 
 { 
@@ -28,7 +28,7 @@ DM.prototype.help=function ()
 
 function xassert(m,a,b)
 {
-  console.log('TEST:'+m+'  assert:('+a+') = ('+b+')');
+  console.log('TEST:-----------------------------------------\n'+m+'  assert:['+a+']\n ['+b+']');
   if(a==b)
   {
     console.log('----------------- UNIT OK -------------------');
@@ -36,8 +36,9 @@ function xassert(m,a,b)
   }  
   else  
   {
-    console.log('XXXXXXXXXX TEST:'+m+' assert:[ '+a+' ] = [ '+b+' ] XXXXXXXXXXXXX');
-    console.log('XXXXXXXXXXXX UNIT TEST FAILED XXXXXXXXXXXXXXXXXXXX');
+    console.log('FAILED!!!');
+    //console.log('XXXX TEST:'+m+' assert:[ '+a+' ] = [ '+b+' ] FAILED XXX');
+    //console.log('XXXXXXXXXXXX UNIT TEST FAILED XXXXXXXXXXXXXXXXXXXX');
    // process.  exit(0);
   }  
 }    
@@ -62,13 +63,20 @@ DM.prototype.unittest=function ()
   gmin:  [ [ 1 ], [ 2 ], [ 3 ] ],
   gsum:  [ [ 5 ], [ 7 ], [ 9 ] ] }
 */  
-   xassert('normalizeMatrizNew(testdata)',r.m,'1');  
 /* Normalizados: minimos e maximos de cada coluna
    [ [ -1, -1, -1 ], 
       [ 1, 1, 1 ] ]
 */      
+   xassert('normalizeMatrizNew(testdata)',r.m,'1');  
    xassert('normalizeMatrizNew(testdata)',JSON.stringify(r.dm),'1');  
-      
+   
+   r=dm.normalizeMatrixNew(testdata,{hasHeaders:false,lastColumn:false});
+   xassert('normalizeMatrizNew(testdata){lastColumn:false}',r.m,'1');  
+   xassert('normalizeMatrizNew(testdata){lastColumn:false}',JSON.stringify(r.dm),'1');  
+
+   xassert('normalizeValue(2,3.5,1.5)',dm.normalizeValue(2,3.5,1.5),'1');  
+   
+   
 }
 
 
@@ -752,13 +760,16 @@ dm_htmltable=function(plines,pnumparams,mtx)
               s=s+('</tr>');
           }
           s=s+('</table>');
-          s=s+('<p>'+plines+' lines</p>');
+          s=s+('<p>Showing '+plines+' lines.</p>');
           
           return s;
 };
 
-DM.prototype.htmltable=function(plines,pnumparams,mtx)
+DM.prototype.htmltableOld=function(plines,pnumparams,mtx)
 {
+    plines2=mtx.length;
+    //pega o menor para nao dar indexOitOfBounds
+    plines=(plines2<plines?plines2:plines);
     return dm_htmltable(plines,pnumparams,mtx);
 };
 
@@ -836,9 +847,14 @@ DM.prototype.sumToVector=function(m1,sc) {
  * retorna a matriz (pmtx é array, array em javascritpt é passado por copia
  * */
 /*******************************************/
-DM.prototype.normalizeMatrixNew=function(pmtx)
+DM.prototype.normalizeMatrixNew=function(pmtx,poptions)
 {
-    options={hasHeaders:false};
+    var options=null;
+    if(poptions==null)
+      options={hasHeaders:false,lastColumn:true};
+    else  
+        options=poptions;
+      
     plines=pmtx.length;
     cols=0;
     if(plines>0)
@@ -859,14 +875,17 @@ DM.prototype.normalizeMatrixNew=function(pmtx)
        gDM.gavg.push([0]);
        gDM.gstdev.push([0]);
        gDM.gmad.push([0]);
-       gDM.gmin.push([0]);
        gDM.gmax.push([0]);
+       gDM.gmin.push([0]);
        gDM.gsum.push([0]);
     }
     rmtx = dm_normalizeMatrix(plines,cols,pmtx,gDM,options);
     return {m:rmtx,dm:gDM};    
 }
-
+DM.prototype.normalizeValue=function(v,mean,stdev)
+{
+  return (v-mean)/stdev;
+};
 DM.prototype.normalizeMatrix=function(plines,pnumparams,pmtx, pDM)
 {
     options={hasHeaders:false};
@@ -890,8 +909,9 @@ dm_normalizeMatrix=function(plines,pnumparams,pmtx, pDM,options)
 {
    if(options==null)
    {
-      options={hasHeaders:false};
+      options={hasHeaders:false,lastColumn:true};
    }
+   console.log('xzxzzxzxzxzxzzxzxzzxzxzxz '+JSON.stringify(options));
    var ii=0;
    var nmtx=[];
    if(options.hasHeaders==true)
@@ -925,11 +945,11 @@ dm_normalizeMatrix=function(plines,pnumparams,pmtx, pDM,options)
       }
       var v2=v/plines;
   
-      pDM.gsum[cc][0]=v;
+      pDM.gstdev[cc][0]=0;
       pDM.gavg[cc][0]=v2;
       pDM.gmin[cc][0]=min1;
       pDM.gmax[cc][0]=max1;
-      pDM.gstdev[cc][0]=0;
+      pDM.gsum[cc][0]=v;
 
       v=0;
       vmad=0;
@@ -947,7 +967,7 @@ dm_normalizeMatrix=function(plines,pnumparams,pmtx, pDM,options)
       vmad=vmad/plines;
       pDM.gmad[cc][0]= vmad;
 
-     }; 
+    }; 
 
      //loop3: loop de linhas e colulas p/criar arraynew: normaliza  subtrai da média e multiplica por stdev
       for(ii=0;ii<plines;ii++)
@@ -956,12 +976,17 @@ dm_normalizeMatrix=function(plines,pnumparams,pmtx, pDM,options)
         for(cc=0;cc<pnumparams;cc++)
         {
           var c=parseFloat(pmtx[ii][cc]);
-          //só normaliza se stdev != 0
-          if(pDM.gstdev[cc][0]!=0)
-            c=(c-pDM.gavg[cc][0])/pDM.gstdev[cc][0];
-          //else
-           // c=0;
+          var c_orig=c;
+            //só normaliza se stdev != 0
+            if(pDM.gstdev[cc][0]!=0)
+               c=(c-pDM.gavg[cc][0])/pDM.gstdev[cc][0];
+
+          //a ultima coluna so faz se o user determinar
+          if(cc==(pnumparams-1)&&options.lastColumn==false)
+           lin1.push(c_orig);
+          else
            lin1.push(c);
+          
            //rmtx[ii][cc]=c;
          }
         rmtx.push(lin1);
