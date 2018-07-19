@@ -21,9 +21,11 @@ v.1.5
 -v 1.7 mudança de posicao de funcoes DM
 -v 1.8 codigo mostrando labels 
 - v1.9 refactor extract DM to class
+- v1.95: precommit
+-v2.0: funciona com dm 5.7, regressao linear, com normalizacao, regressao logistica (binaria, 1 ou 1) (nao tem oneVsAll). Nao tem mapping para polinomial, nao tem neural net linear nem logistica.
 */
 
-var APPV="1.9"; 
+var APPV="2.0"; 
 
 //Ciclo: save, git add *, git diff --staged, git commit -m
 
@@ -178,6 +180,7 @@ var gDM = {
 	gmad:[],  //mean absolute deviatio
 	gmax:[],
 	gmin:[],
+	gsum:[],
 } 
 
 /*
@@ -346,8 +349,11 @@ function UIPostTrainData(requestBody,response)
 		  /* PNUMPARAMS - nao utilizado!!! */
 		  /*  startrow, endrow+1 */
 		  /*  startcol , passar endcol+1  */
+      
+//DM.prototype.mget= function (pmatrixfile,pnumparams,startrow,endrow,startcol,endcol)
 
-          MY=dm.xmget(matrixfile,  //file
+          MY=dm.mget(matrixfile,  //file
+      0,  //not userd    
 		  0,  //startrow
 		  parseInt(matrixfile.length), //endrow +1 
 		  parseInt(formDataInt.numparam)-1,  //startcol (pega a ultima coluna)
@@ -377,7 +383,10 @@ function UIPostTrainData(requestBody,response)
           }
 
           //MX0 é a matriz sem a coluna Y
-          var MX0=dm.xmget(matrixfile,
+//DM.prototype.mget= function (pmatrixfile,pnumparams,startrow,endrow,startcol,endcol)
+
+          var MX0=dm.mget(matrixfile,
+      0, //not used    
 		  0, //startrow
 		  parseInt(matrixfile.length),  //endrow+1
 		  0,  //startcol
@@ -394,22 +403,25 @@ function UIPostTrainData(requestBody,response)
           gDM.count=[];
           gDM.gavg=[];
           gDM.gstdev=[];
-		  gDM.gmin=[];
-		  gDM.gmax=[];
-		  gDM.gmad=[];
+          gDM.gmad=[];
+          gDM.gmin=[];
+          gDM.gmax=[];
+          gDM.gsum=[];
           for(n=0;n<parseInt(formDataInt.numparam);n++)
           {
              //adiciona uma linha com uma coluna [1]
              gDM.count.push([0]);
              gDM.gavg.push([0]);
              gDM.gstdev.push([0]);
+             gDM.gmad.push([0]);
              gDM.gmin.push([0]);
              gDM.gmax.push([0]);
-             gDM.gmad.push([0]);
+             gDM.gsum.push([0]);
           }
 		  
 		  //get statitstics
-         dm.normalizeMatrix(matrixfile.length,parseInt(formDataInt.numparam),matrixfile,gDM);
+         //dm.normalizeMatrix(matrixfile.length,parseInt(formDataInt.numparam),matrixfile,gDM);
+         dm.normalizeMatrix2(matrixfile,gDM);
 		  
           response.writeHead(200, {'Content-Type': 'text/html'});
           response.write('<!doctype html><html><head><title>response</title>');
@@ -473,9 +485,11 @@ function UIPostTrainData(requestBody,response)
           response.write('<br/>DATA ARRAY - 5 primeiras linhas. Ultima coluna eh Y. TOTAL='+matrixfile.length);
           matrixfileWithLabels=[];
 		  matrixfileWithLabels.push(MXLabels);
-		  for(var i=0;i<matrixfile.length;i++) matrixfileWithLabels.push(matrixfile[i]);
+		  for(var i=0;i<matrixfile.length;i++) 
+          matrixfileWithLabels.push(matrixfile[i]);
+          
           //response.write('<hr>'+matrixfileWithLabels+'============'+matrixfileWithLabels.length);
-          s = dm.htmltable(5,formDataInt.numparam,matrixfileWithLabels);
+          s = dm.htmltableOld(5,formDataInt.numparam,matrixfileWithLabels);
           response.write('<hr>'+s);
           /*
           //GRAPH:codigo para incluir canvas
@@ -505,6 +519,7 @@ function UIPostTrainData(requestBody,response)
   		  emptyrow=[];emptyrow.push('mad');  DMstats.push(emptyrow);
   		  emptyrow=[];emptyrow.push('min');  DMstats.push(emptyrow);
   		  emptyrow=[];emptyrow.push('max');  DMstats.push(emptyrow);
+  		  emptyrow=[];emptyrow.push('sum');  DMstats.push(emptyrow);
 		  
 		  //loop de colunas
 		  for(var i=0;i<MXLabels.length;i++)
@@ -518,23 +533,24 @@ function UIPostTrainData(requestBody,response)
 			 emptyrow=DMstats[linha++]; emptyrow.push(gDM.gmad[i]);
 			 emptyrow=DMstats[linha++]; emptyrow.push(gDM.gmin[i]);
 			 emptyrow=DMstats[linha++]; emptyrow.push(gDM.gmax[i]);
+			 emptyrow=DMstats[linha++]; emptyrow.push(gDM.gsum[i]);
 		  }
 
 		response.write('<br/>Descriptive Statistics:');
-		s = dm.htmltable(DMstats.length,MXLabels.length+1,DMstats);
+		s = dm.htmltableOld(DMstats.length,MXLabels.length+1,DMstats);
 		response.write(s);
 		/*  
  		response.write('<br/>MIN array:'+DMgmin);
-		s = DMhtmltable(DMgmin.length,1,DMgmin);
+		s = DMhtmltableOld(DMgmin.length,1,DMgmin);
 		response.write(s);
 		
  		response.write('<br/>MAX array:'+DMgmax);
-		s = DMhtmltable(DMgmax.length,1,DMgmax);
+		s = DMhtmltableOld(DMgmax.length,1,DMgmax);
 		response.write(s);
 
 		 response.write('<br/>AVG array:'+DMgavg);
 		//response.write('<br/>AVG :'+gavg.length);
-		s = DMhtmltable(DMgavg.length,1,DMgavg);
+		s = DMhtmltableOld(DMgavg.length,1,DMgavg);
 		response.write(s);
 
  		response.write('<br/>MAD (desvio absoluto da media) array:'+DMgmad);
@@ -551,54 +567,59 @@ function UIPostTrainData(requestBody,response)
 		  //NA SEGUNDA VEZ calcula com MX, ou seja, com coluna 1 e sem Y
 		  //calcula estatisticas 
 		  gDM.count=[];
-          gDM.gavg=[];
-          gDM.gstdev=[];
+      gDM.gavg=[];
+      gDM.gstdev=[];
+		  gDM.gmad=[];
 		  gDM.gmin=[];
 		  gDM.gmax=[];
-		  gDM.gmad=[];
+		  gDM.gsum=[];
           for(n=0;n<parseInt(formDataInt.numparam);n++)
           {
              //adiciona uma linha com uma coluna [1]
              gDM.count.push([0]);
              gDM.gavg.push([0]);
              gDM.gstdev.push([0]);
+             gDM.gmad.push([0]);
              gDM.gmin.push([0]);
              gDM.gmax.push([0]);
-             gDM.gmad.push([0]);
+             gDM.gsum.push([0]);
           }
   
   
           if(formDataInt.norm=='1')
           {
-             //response.write('<hr>Normalization Coefs:<hr>'+MXLabels+'<br>');
+             response.write('<hr>Normalization Coefs: (added 1st colunm=1, last column (y) ommited)<hr>'+' '+'<br>');
 			 //chama pela segunda vez agora guardando em MX.
-             MX=dm.normalizeMatrix(MX.length,parseInt(formDataInt.numparam),MX,gDM);
+             //MX=dm.normalizeMatrix(MX.length,parseInt(formDataInt.numparam),MX,gDM);
+             //s = dm.htmltable(MX); response.write('<hr>'+s);
+             MX=dm.normalizeMatrix2(MX,gDM);
+             //s = dm.htmltable(MX); response.write('<hr>'+s);
              //response.write('<br/>X MATRIX lines NORM:'+MX.length);
-             //s = DMhtmltable(MX.length,parseInt(formDataInt.numparam),MX);
-            //response.write('<hr>'+s);
+             s = dm.htmltableOld(MX.length,parseInt(formDataInt.numparam),MX);
+             response.write('<hr>'+s);
           };  
 
 		  if(formDataInt.showDataTable==1)
 		  {
-			  response.write('<br/>X MATRIX lines:'+MX.length);
-			  s = dm.htmltable(MX.length,parseInt(formDataInt.numparam),MX);
+			  response.write('<br/>X  lines:'+MX.length);
+			  s = dm.htmltableOld(MX.length,parseInt(formDataInt.numparam),MX);
 			  response.write('<hr>'+s);
 
 				  
-			  response.write('<br/>Y MATRIX lines:'+MY.length);
-			  s = dm.htmltable(MY.length,1,MY);
+			  response.write('<br/>Y  lines:'+MY.length);
+			  s = dm.htmltableOld(MY.length,1,MY);
 			  response.write('<hr>'+s);
 		  }
 		  
 		  
-          //Inicializa THETA (com 2 parametros) (depois fazer "zeros" do octave)
-          //TT = [ [0,0 ] ];
-          
-          TT = [];
-          for(n=0;n<parseInt(formDataInt.numparam);n++)
-          {
-             TT.push([0]);
-          }
+      //Inicializa THETA (com 2 parametros) (depois fazer "zeros" do octave)
+      //TT = [ [0,0 ] ];
+      
+      TT = [];
+      for(n=0;n<parseInt(formDataInt.numparam);n++)
+      {
+         TT.push([0]);
+      }
 
 
          response.write('<hr>'+'FIM');       
@@ -612,84 +633,111 @@ function UITrain(response)
 {
           response.writeHead(200, {'Content-Type': 'text/html'});
           response.write('<!doctype html><html><head><title>response v2</title>');
+          //para considerar iter=0 como primeira ou nao
+          //it0=1;
+          it0=0;
           //verifica se ja chegou na ultima iteracao
-          if(formDataInt.iternum<formDataInt.iterations)
+          
+          if(formDataInt.iternum<=formDataInt.iterations-it0)
           {
             response.write('<meta http-equiv="refresh" content="0" />');
           }
           else
           {
             //no final para de dar refresh
-            //response.write('<meta http-equiv="refresh" content="0" />');
           };
 
           response.write('</head>');
 
-          if(formDataInt.iternum<formDataInt.iterations)
+          if(formDataInt.iternum<=formDataInt.iterations-it0)
           {  
             response.write('<h1>Buscando parametros...</h1>\n');
           }
-		  else
-          if(formDataInt.iternum<formDataInt.iterations)
+		      else
           {  
             response.write('<h1>Parametros encontrados.</h1>\n');
+            response.write('<br />Erro entre real e previsto ANTERIOR (J): '+Jarr[formDataInt.iternum-3]);
+            response.write('<br />Erro entre real e previsto ANTERIOR (J): '+Jarr[formDataInt.iternum-2]);
+            response.write('<br />Erro entre real e previsto ANTERIOR (J): '+Jarr[formDataInt.iternum-1]);
+            response.write('<br />Erro entre real e previsto ANTERIOR (J): '+Jarr[formDataInt.iternum]);
+            response.write('<br />Iteration: '+parseInt(formDataInt.iternum));
           }
 
 		  
-          /////////////////////////////////////////////////
-          // TREINA 1 ITERACAO
-          /////////////////////////////////////////////////
-          
-          J = computeCost(parseInt(formDataInt.mlmethod),MX,MY,TT,response);
-          response.write('<br />Erro entre real e previsto (J): '+J);
-          Jarr.push(J);
+          if(formDataInt.iternum<=formDataInt.iterations-it0)
+          {  
+            /////////////////////////////////////////////////
+            // TREINA 1 ITERACAO
+            /////////////////////////////////////////////////
+            J = computeCost(parseInt(formDataInt.mlmethod),MX,MY,TT,response);
+            response.write('<br />Iteration: '+parseInt(formDataInt.iternum));
+            response.write('<br />Erro entre real e previsto (J): '+J);
+            Jarr.push(J);
 
-          TT = gradientDescent(parseInt(formDataInt.mlmethod),MX,MY,TT,formDataInt.alpha, response);
-          TTarr.push(TT);
-
+            TT = gradientDescent(parseInt(formDataInt.mlmethod),MX,MY,TT,formDataInt.alpha, response);
+            TTarr.push(TT);
+            console.log('===---------===>Cost(J)'+J+'  NEW TT:'+TT);
+            
+           }
           response.write('<br/>Coeficientes (Tethas) :');
 
-		  var CoefLabels=[];
-		  CoefLabels[0]='Intercept';
-		  for(var i=1;i<MXLabels.length;i++)
-		  {
-		      CoefLabels[i]=MXLabels[i-1];
-		  }
-		  TT2 = [];
-		  TT2.push(CoefLabels);
-		  TT2.push(TT);
-          s = dm.htmltable(TT2.length,CoefLabels.length,TT2);
+          var CoefLabels=[];
+          CoefLabels[0]='Intercept';
+          for(var i=1;i<MXLabels.length;i++)
+          {
+              CoefLabels[i]=MXLabels[i-1];
+          }
+          TT2 = [];
+          TT2.push(CoefLabels);
+          TT2.push(TT);
+          s = dm.htmltableOld(TT2.length,CoefLabels.length,TT2);
           response.write('<hr>'+s);
-          
+      
 
-          //s = htmltable(TT.length,1,TT);
+          //s = htmltableOld(TT.length,1,TT);
           //response.write('<hr>'+s);
           /////////////////////////////////////////////////
           // PREAPARA TELA
           /////////////////////////////////////////////////
-          var script1 = fs.readFileSync('script1.html');
-          response.write(script1);
-          
-		  var canvsize=180;
+          //var script1 = fs.readFileSync('script1.html');
+          var script1=
+          '<script>\n'+
+          'var gcolor="#FF0000";\n'+
+          'var gcolor2="#00FF00";\n'+
+          'function drawCanvas(cname,pnumpoints,pdadosx,pdadosy,pgcolor,altura) \n'+
+          '{\n'+
+            'var c = document.getElementById(cname);\n'+
+            'var ctx = c.getContext("2d");\n'+
+            'ctx.fillStyle=pgcolor;\n'+
+            'for(ii=0;ii<numpoints;ii++)\n'+
+            '{\n'+
+              'ctx.fillRect(pdadosx[ii],(altura/2)-pdadosy[ii],2,2);\n'+
+            '}\n'+
+            'ctx.stroke();\n'+
+          '}\n'+
+          '</script>\n';
 
+          response.write(script1);
+              
+          var canvsize=180;
 
           response.write('<script>\n');
 
- 		  //Inclui scripts que desenha graficos
-		  //Prepara variaveis dadosx e dadosy, dadosxN e dadosyN dos graficos
+          //Inclui scripts que desenha graficos
+          //Prepara variaveis dadosx e dadosy, dadosxN e dadosyN dos graficos
           response.write('var numpoints='+parseInt(formDataInt.iternum)+';\n');
           var dx=[];
           for(var i=0;i<formDataInt.iternum;i++)
              dx.push(i);
           
           //x=numero de iteracoes   
-		  //y=J (errors)
+          //y=J (errors)
 
-		  //incluir script de dados para grafico de J (erro)
-		  //Escala X e Y 
-		  xscale1=canvsize/parseInt(formDataInt.iterations);
-		  //o maximo Y é o primeiro Erro x 10  (se o erro subir...)
-		  yscale1=canvsize/(Jarr[0]*10);
+          //incluir script de dados para grafico de J (erro)
+          //Escala X e Y 
+          xscale1=canvsize/parseInt(formDataInt.iterations);
+          //o maximo Y é o primeiro Erro x 10  (se o erro subir...)
+          yscale1=canvsize/(Jarr[0]*10);
           response.write('\ndadosx=['+dm.multiplyVector(dx,xscale1)+'];\n');
           response.write('\ndadosy=['+dm.multiplyVector(Jarr,yscale1)+'];\n');
           response.write('var gcolorj="#0000FF";\n');
@@ -697,27 +745,29 @@ function UITrain(response)
           
 		  //incluir script de dados para grafico de coeficients
           //loop de thetas
-		  var maxtetha=[];
+          var maxtetha=[];
           for(var i=0;i<TT.length;i++)
           {
-				response.write('var dadosx'+i+'=['+dm.multiplyVector(dx,xscale1)+'];\n');
+              response.write('var dadosx'+i+'=['+dm.multiplyVector(dx,xscale1)+'];\n');
 
-				//escala o Y em theta.... vai mudando a escala do grafico de 100 em 100
+                //escala o Y em theta.... vai mudando a escala do grafico de 100 em 100
                 //busca o maior theta para escalar o grafico
-				maxtetha.push(1000);
-				for(var j=0;j<TTarr.length;j++)
-				{
-				   if(TTarr[j][i]>maxtetha)
-  				         maxtetha[i]=TTarr[j][i]+500;
-				}		 
-				yscale1=canvsize/(maxtetha[i]);
-		      //Pega a lista historica de thetas
-			  var T1 = dm.xmget(TTarr,0,       TTarr.length,i,i+1)
-				response.write('var dadosy'+i+'=['+dm.multiplyVector(T1,yscale1)+'];\n');
-				response.write('var gcolor'+i+'="#00FF00";\n');
+              maxtetha.push(1000);
+              for(var j=0;j<TTarr.length;j++)
+              {
+                 if(TTarr[j][i]>maxtetha)
+                         maxtetha[i]=TTarr[j][i]+500;
+              }		 
+              yscale1=canvsize/(maxtetha[i]);
+                //Pega a lista historica de thetas
+
+             //DM.prototype.mget= function (pmatrixfile,pnumparams,startrow,endrow,startcol,endcol)
+              var T1 = dm.mget2(TTarr, 0, TTarr.length,  i,i+1)
+              response.write('var dadosy'+i+'=['+dm.multiplyVector(T1,yscale1)+'];\n');
+              response.write('var gcolor'+i+'="#00FF00";\n');
           }
 
-		  //Inclui scripts que desenha graficos
+          //Inclui scripts que desenha graficos
           //response.write('var gcolor2="#00FF00";\n');
           response.write('function init2()\n');
           response.write('{\n');
@@ -734,15 +784,13 @@ function UITrain(response)
           //GRAPH:codigo para data init
           response.write('<body onload="init2()">\n');
 
-          if(formDataInt.iternum<formDataInt.iterations)
+          if(formDataInt.iternum<=formDataInt.iterations-it0)
           {  
-            //response.write('<h1>Training...(v4)</h1>\n');
-			formDataInt.iternum++;
+			      formDataInt.iternum++;
           }
           else
-          {
-
-		  //Gera form para predict
+          {  //se terminou de treinar.....
+            //Gera form para predict
             response.write('<h3>Parametros (coeficientes) encontrados.</h3>\n');
 
             var formParamPredict = '<form method="post" '
@@ -751,26 +799,27 @@ function UITrain(response)
             for(var i=0;i<TT.length;i++)
             {
               formParamPredict+='<div><label for="x'+i+'">'+CoefLabels[i]+':</label>';
-			  var val=1;
-			  var readonly='';
-			  if(i==0) 
-			  {
-			     val=1; //se for intercept
-				 //readonly='disabled';
-			   }	 
-			   formParamPredict+='<input type="text" id="x'+i+'"  '+readonly+'  name="x'+i+'" value="'+val+'" /></div>\n';
+              var val=1;
+              var readonly='';
+              if(i==0) 
+              {
+                 val=1; //se for intercept
+               //readonly='disabled';
+              }	 
+              formParamPredict+='<input type="text" id="x'+i+'"  '+readonly+'  name="x'+i+'" value="'+val+'" /></div>\n';
             }
             formParamPredict+='<div><input id="startTraining" type="submit" value="Predict '+MXLabels[MXLabels.length-1]+'" /></div>\n';
             +'</fieldset>\n'
             +'</form>\n';
             response.write(formParamPredict);
-          response.write('<br/>DATA ARRAY - 5 primeiras linhas. Ultima coluna eh Y. TOTAL='+matrixfile.length);
-          matrixfileWithLabels=[];
-		  matrixfileWithLabels.push(MXLabels);
-		  for(var i=0;i<matrixfile.length;i++) matrixfileWithLabels.push(matrixfile[i]);
+            response.write('<br/>DATA ARRAY - 5 primeiras linhas. Ultima coluna eh Y. TOTAL='+matrixfile.length);
+            matrixfileWithLabels=[];
+            matrixfileWithLabels.push(MXLabels);
+            for(var i=0;i<matrixfile.length;i++) 
+               matrixfileWithLabels.push(matrixfile[i]);
 //          response.write('<hr>'+matrixfileWithLabels+'============'+matrixfileWithLabels.length);
-          s = dm.htmltable(5,formDataInt.numparam,matrixfileWithLabels);
-          response.write('<hr>'+s);
+            s = dm.htmltableOld(5,formDataInt.numparam,matrixfileWithLabels);
+            response.write('<hr>'+s);
 
           };
 
@@ -799,10 +848,12 @@ function UITrain(response)
             response.write('<td>\n');
 
             response.write('<table>\n');
-			if(i==0)
-			   response.write('<tr><td>Coeficiente "Intercept" : de '+ 0+' ate '+maxtetha[i]+'</td>');
-			else   
-				response.write('<tr><td>Coeficiente'+MXLabels[i-1]+': de '+ 0+' ate '+maxtetha[i]+'</td>');
+
+            if(i==0)
+               response.write('<tr><td>Coeficiente "Intercept" : de '+ 0+' ate '+maxtetha[i]+'</td>');
+            else   
+              response.write('<tr><td>Coeficiente'+MXLabels[i-1]+': de '+ 0+' ate '+maxtetha[i]+'</td>');
+              
             response.write('<td><canvas id="myCanvas'+i+'" width="'+canvsize+'" height="'+canvsize+'"\n');
             response.write('style="border:1px solid #d3d3d3;">\n');
             response.write('Your browser does not support the HTML5 canvas tag.</canvas>\n');
@@ -810,7 +861,6 @@ function UITrain(response)
             response.write('<tr><td></td><td>Iteration:'+0+' ate '+formDataInt.iterations+'</td>');
             response.write('</tr>\n');
             response.write('</table>\n');
-
             response.write('</td>\n');
           }
 
@@ -853,10 +903,10 @@ function UIPredict(requestBody,response)
 		  XX2 = [];
 		  XX2.push(CoefLabels);
 		  XX2.push(Xcols);
-          s = dm.htmltable(XX2.length,CoefLabels.length,XX2);
+          s = dm.htmltableOld(XX2.length,CoefLabels.length,XX2);
           response.write('<hr>'+s);
 
-          //s = DMhtmltable(1,XX[0].length,XX);
+          //s = DMhtmltableOld(1,XX[0].length,XX);
           //response.write('<hr>'+s);
 
           //Normaliza Dados fornecidos 
@@ -866,9 +916,9 @@ function UIPredict(requestBody,response)
 			  response.write('<br/>Normalizacao: passo 1:subtrai da media (ficam em torno de x) ');
 			  response.write('<br/>Normalizacao: passo 2:divide por stdev (escala valores) ');
 			  response.write('<br/>AVG:'+gDM.gavg.length);
-			  s = dm.htmltable(gDM.gavg.length,1,gDM.gavg);
+			  s = dm.htmltableOld(gDM.gavg.length,1,gDM.gavg);
 			  response.write('<br/>STDEV:'+gDM.gstdev.length);
-			  s = dm.htmltable(gDM.gstdev.length,1,gDM.gstdev);
+			  s = dm.htmltableOld(gDM.gstdev.length,1,gDM.gstdev);
             for(var i=1;i<TT.length;i++)
             {
                csep=XX[0][i];
@@ -881,7 +931,7 @@ function UIPredict(requestBody,response)
 		  XX2 = [];
 		  XX2.push(CoefLabels);
 		  XX2.push(Xcols);
-          s = dm.htmltable(XX2.length,CoefLabels.length,XX2);
+          s = dm.htmltableOld(XX2.length,CoefLabels.length,XX2);
           response.write('<hr>'+s);
 
 		  response.write('<br/>Coeficientes (Tethas) :');
@@ -895,7 +945,7 @@ function UIPredict(requestBody,response)
 		  TT2 = [];
 		  TT2.push(CoefLabels);
 		  TT2.push(TT);
-          s = dm.htmltable(TT2.length,CoefLabels.length,TT2);
+          s = dm.htmltableOld(TT2.length,CoefLabels.length,TT2);
           response.write('<hr>'+s);
 
 		  
@@ -909,7 +959,7 @@ function UIPredict(requestBody,response)
 		//paramTable.push(XX);
 		
         //  response.write('<br/>Parametros Normalizados:'+paramTable.length);
-        //  s = DMhtmltable(MXLabels.length,2,MXLabels);
+        //  s = DMhtmltableOld(MXLabels.length,2,MXLabels);
         //  response.write('<hr>'+s);
 		
         response.write('<h1>Predict:'+MXLabels[MXLabels.length-1]+'='+ho+'</h1>');
@@ -970,7 +1020,7 @@ function computeCost(tp,pMX,pMY,pTT,response)
     //J= - (sum (-y*log(ho(x))+(1-y)*log(1-ho(x)))/m
     var soma=0;
     //faz SUM iterativo
-    if(tp==0)
+    if(tp==0) //tp=0 regressao linear
     {
       for(var i=0;i<m;i++)
       {
@@ -981,10 +1031,11 @@ function computeCost(tp,pMX,pMY,pTT,response)
       }
      //console.log('===> SOMA'+soma)
       pJ=(1/(2*m)) * soma;
-      //console.log('===> pJ'+pJ)
+//      console.log('===##########################===> TT:'+pTT);
+//      console.log('===##########################===> J:'+pJ);
     }
     else
-    {
+    {   //tp=1 regressao log
       for(var i=0;i<m;i++)
       {
          yy=pMY[i];
@@ -1005,21 +1056,19 @@ function computeCost(tp,pMX,pMY,pTT,response)
       //console.log('===> pJ'+pJ)
     
     }
+    
     return pJ;
 }
 
 /*******************************************/
 /*  gradient... */
+/* Faz apenas uma iteração */
 /*******************************************/
 function gradientDescent(tp,pMX,pMY,pTT,alpha, response)
 {
 
    var m=pMY.length;  //numero de training examples
    var nn= pMX[0].length; //pega o num de param da primeria linha
-
-   //console.log('******************* Apha:'+alpha);
-   //console.log('******************* M:'+m);
-   //console.log('******************* N:'+nn);
 
    //calcula h(x) [prediction]
    var ho=dm.multiplyMatrices(pMX,pTT);
@@ -1032,40 +1081,36 @@ function gradientDescent(tp,pMX,pMY,pTT,alpha, response)
          ho[i]=sigmoid(ho[i]);
       }
     }  
-
-
+    //Zera SIGMA:eh no novo tetha
     sigma = [];
     for(n=0;n<nn;n++)
     {
        sigma.push([0]);
     }
 
-    //sigma0=[[0],[0],[0]];
-
-    //Nao tem loop de iterações...
-
-    //COMPLEMENTAR.........................
-       
     //loop de parametros (features)   
     for(n=0;n<nn;n++)
     {
-      //calcuma sum sum( (ho-y).* X(:,n) );
+      //calcuma sum( (ho-y).* X(:,n) );
       var soma=0;
-      //faz SUM iterativo
+      //loop de todas as intancias de entrada
+      //FOR abaixo:
+      //Pagiana 3 de week 2
+      //soma=sum(  (ho-y) * X )  
+      var somaincr=0; //debug
       for(var i=0;i<m;i++)
       {
-         s1 = (ho[i]-pMY[i]);
-         //console.log('GD: ho-y'+s1);
-         s1 = s1* pMX[i][n];
-         //console.log('GD: x:'+pMX[i][n]+'GD: s1*X'+s1);
-         soma += s1;
+         s0 = (ho[i]-pMY[i]);
+         s1 = s0* pMX[i][n];
+         soma+=s1;
+         somaincr+=s1;
+//         console.log('!!!!!!!!!m:'+(i+1)+' somaincr'+somaincr+'!!jdev: '+s1);
       }
-      //console.log('soma total : '+soma);
       s2=soma/m;
-      //console.log('soma/m : '+s2);
+//      console.log('!!!!!!!!!!!!! soma: '+soma+' m:'+m+' soma/m:'+s2);
       //atualiza theta
       sigma[n][0]= pTT[n][0] - (alpha*s2);
-      //console.log('new theta: '+sigma[n][0]);
+//      console.log('new theta: '+sigma[n][0]);
    }
    return sigma;
  }
